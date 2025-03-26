@@ -248,10 +248,17 @@ class MockHealthDataProvider {
     return [
       HealthAlert(
         id: '8',
-        lastUpdated: DateTime.now().subtract(const Duration(hours: 6)),
-        title: 'Low Hemoglobin Alert',
-        message: 'Your hemoglobin levels are slightly below normal range. Consider increasing iron-rich foods in your diet.',
+        lastUpdated: DateTime.now().subtract(const Duration(hours: 12)),
+        title: 'Abnormal Blood Pressure',
+        message: 'Your blood pressure reading is higher than your average. Consider resting and measuring again.',
         severity: AlertSeverity.medium,
+      ),
+      HealthAlert(
+        id: '9',
+        lastUpdated: DateTime.now().subtract(const Duration(days: 2)),
+        title: 'Missed Medication',
+        message: 'You may have missed your prenatal vitamins yesterday. Try to maintain your regular schedule.',
+        severity: AlertSeverity.low,
       ),
     ];
   }

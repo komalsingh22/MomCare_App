@@ -1,71 +1,47 @@
 import 'package:flutter/material.dart';
+import 'package:health_app/theme/app_theme.dart';
 
 class OfflineIndicator extends StatelessWidget {
   final bool isOffline;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
 
   const OfflineIndicator({
-    super.key,
+    Key? key,
     required this.isOffline,
-    this.onTap,
-  });
+    required this.onTap,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    if (!isOffline) {
-      return const SizedBox.shrink();
-    }
+    if (!isOffline) return const SizedBox.shrink();
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              const Color(0xFFFFF9C4),
-              const Color(0xFFFFECB3),
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.amber.withOpacity(0.2),
-              offset: const Offset(0, 2),
-              blurRadius: 4,
-            ),
-          ],
-        ),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        color: const Color(0xFFFFF9C4),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Icon(
-                Icons.wifi_off_rounded,
-                size: 14,
-                color: Colors.amber,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'Offline Mode: Data saved locally',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.amber.shade900,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(width: 6),
             Icon(
-              Icons.refresh_rounded,
-              size: 16, 
-              color: Colors.amber.shade800,
+              Icons.wifi_off,
+              size: 16,
+              color: Colors.orange.shade800,
+            ),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'You are offline. Some features may be limited.',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFFB7791F),
+                ),
+              ),
+            ),
+            Icon(
+              Icons.refresh,
+              size: 16,
+              color: Colors.orange.shade800,
             ),
           ],
         ),

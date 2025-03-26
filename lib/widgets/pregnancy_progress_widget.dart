@@ -5,329 +5,279 @@ import 'package:health_app/utils/date_utils.dart' as app_date_utils;
 
 class PregnancyProgressWidget extends StatelessWidget {
   final PregnancyData pregnancyData;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
 
   const PregnancyProgressWidget({
-    super.key,
+    Key? key,
     required this.pregnancyData,
-    this.onTap,
-  });
+    required this.onTap,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFF8F2F8), Color(0xFFFFFAF5)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.secondaryColor.withOpacity(0.1),
-            offset: const Offset(0, 4),
-            blurRadius: 12,
+    // Calculate remaining days
+    final currentDate = DateTime.now();
+    final remainingDays = pregnancyData.dueDate.difference(currentDate).inDays;
+    
+    // Calculate progress percentage (assuming 40 weeks = 280 days total pregnancy)
+    const totalDays = 280;
+    final daysPassed = totalDays - remainingDays;
+    final progressPercentage = (daysPassed / totalDays).clamp(0.0, 1.0);
+    
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFFFFE0F0),
+              Color(0xFFFFF5F9),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        ],
-      ),
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          splashColor: AppTheme.secondaryColor.withOpacity(0.1),
-          highlightColor: AppTheme.secondaryColor.withOpacity(0.05),
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primaryColor.withOpacity(0.2),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pregnancy Progress',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    RichText(
+                      text: TextSpan(
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        children: [
+                          TextSpan(
+                            text: 'Month ${pregnancyData.currentMonth} ',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primaryTextColor,
+                            ),
+                          ),
+                          TextSpan(
+                            text: '• Due in $remainingDays days',
+                            style: TextStyle(
+                              color: AppTheme.secondaryTextColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primaryColor.withOpacity(0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.child_friendly_outlined,
+                    color: AppTheme.primaryColor,
+                    size: 28,
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Progress bar
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: AppTheme.secondaryColor.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.pregnant_woman_rounded,
-                            color: AppTheme.secondaryColor,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Pregnancy Progress',
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                color: AppTheme.primaryTextColor,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppTheme.secondaryColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.access_time_rounded,
-                                    size: 12,
-                                    color: AppTheme.secondaryColor.withOpacity(0.7),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    app_date_utils.DateUtils.formatLastUpdated(pregnancyData.lastUpdated),
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: AppTheme.secondaryColor,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                    Text(
+                      'Progress',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      '${(progressPercentage * 100).toInt()}%',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primaryColor,
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.6),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
-                            children: [
-                              Text(
-                                'Month ${pregnancyData.currentMonth}',
-                                style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: AppTheme.secondaryColor,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'of 9',
-                                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                  color: AppTheme.secondaryTextColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppTheme.secondaryColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: AppTheme.secondaryColor.withOpacity(0.2),
-                                width: 1,
-                              ),
-                            ),
-                            child: Text(
-                              app_date_utils.DateUtils.getRemainingMonths(pregnancyData.currentMonth),
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.secondaryColor,
-                              ),
-                            ),
-                          ),
-                        ],
+                const SizedBox(height: 8),
+                Stack(
+                  children: [
+                    // Background
+                    Container(
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(5),
                       ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            'Due Date',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.secondaryTextColor,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              gradient: AppTheme.secondaryGradient,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              app_date_utils.DateUtils.formatDate(pregnancyData.dueDate),
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        ],
+                    ),
+                    // Progress fill
+                    FractionallySizedBox(
+                      widthFactor: progressPercentage,
+                      child: Container(
+                        height: 10,
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.primaryGradient,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
                       ),
-                    ],
-                  ),
+                    ),
+                    // Month markers
+                    SizedBox(
+                      height: 10,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: List.generate(9, (index) {
+                          // Show markers for months 1, 3, 5, 7, 9
+                          if (index % 2 == 0) {
+                            return Container(
+                              width: 2,
+                              color: Colors.white.withOpacity(0.7),
+                            );
+                          }
+                          return const SizedBox(width: 2);
+                        }),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 24),
-                _buildProgressBar(context),
-                const SizedBox(height: 20),
-                _buildMilestones(context),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '1st Trimester',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: AppTheme.secondaryTextColor,
+                      ),
+                    ),
+                    Text(
+                      '2nd Trimester',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: AppTheme.secondaryTextColor,
+                      ),
+                    ),
+                    Text(
+                      '3rd Trimester',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: AppTheme.secondaryTextColor,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
-          ),
+            
+            const SizedBox(height: 24),
+            
+            // Milestones
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Recent Milestones',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...pregnancyData.milestones.map((milestone) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          color: milestone.isCompleted
+                              ? AppTheme.primaryColor
+                              : Colors.white,
+                          shape: BoxShape.circle,
+                          border: milestone.isCompleted
+                              ? null
+                              : Border.all(color: AppTheme.borderColor),
+                        ),
+                        child: milestone.isCompleted
+                            ? const Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 14,
+                              )
+                            : null,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          milestone.title,
+                          style: TextStyle(
+                            color: milestone.isCompleted
+                                ? AppTheme.primaryTextColor
+                                : AppTheme.secondaryTextColor,
+                            fontWeight: milestone.isCompleted
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                      if (milestone.completedDate != null)
+                        Text(
+                          _formatDate(milestone.completedDate!),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.secondaryTextColor,
+                          ),
+                        ),
+                    ],
+                  ),
+                )),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
-
-  Widget _buildProgressBar(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: LinearProgressIndicator(
-            value: pregnancyData.currentMonth / 9,
-            minHeight: 10,
-            backgroundColor: AppTheme.secondaryColor.withOpacity(0.15),
-            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.secondaryColor),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(
-              9,
-              (index) {
-                final month = index + 1;
-                final isActive = month <= pregnancyData.currentMonth;
-                final isCurrent = month == pregnancyData.currentMonth;
-                
-                return Column(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: isActive 
-                          ? AppTheme.secondaryColor 
-                          : AppTheme.borderColor,
-                        shape: BoxShape.circle,
-                        border: isCurrent 
-                          ? Border.all(color: AppTheme.secondaryColor, width: 2)
-                          : null,
-                      ),
-                    ),
-                    if (isCurrent) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        '$month',
-                        style: TextStyle(
-                          color: AppTheme.secondaryColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ],
-                );
-              },
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMilestones(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: AppTheme.accentColor.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.flag_rounded,
-                color: AppTheme.accentColor,
-                size: 16,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Milestones',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: pregnancyData.milestones.map((milestone) {
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Chip(
-                label: Text(
-                  milestone.title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: milestone.isCompleted
-                        ? AppTheme.accentColor
-                        : AppTheme.secondaryTextColor,
-                  ),
-                ),
-                backgroundColor: milestone.isCompleted
-                    ? AppTheme.accentColor.withOpacity(0.15)
-                    : AppTheme.backgroundColor,
-                avatar: milestone.isCompleted
-                    ? const Icon(Icons.check_circle, color: AppTheme.accentColor, size: 18)
-                    : const Icon(Icons.pending_outlined, color: Colors.grey, size: 18),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  side: BorderSide(
-                    color: milestone.isCompleted
-                        ? AppTheme.accentColor.withOpacity(0.3)
-                        : AppTheme.borderColor,
-                    width: 1,
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
-    );
+  
+  String _formatDate(DateTime date) {
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return '${date.day} ${months[date.month - 1]}';
   }
 } 

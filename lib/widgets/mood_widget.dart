@@ -6,282 +6,284 @@ import 'package:fl_chart/fl_chart.dart';
 
 class MoodWidget extends StatelessWidget {
   final MoodData moodData;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
 
   const MoodWidget({
-    super.key,
+    Key? key,
     required this.moodData,
-    this.onTap,
-  });
+    required this.onTap,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.sentiment_satisfied_alt,
-                        color: AppTheme.accentColor,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Mental Health',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                    ],
+    List<String> moodLabels = ['Very Low', 'Low', 'Neutral', 'Good', 'Excellent'];
+    List<IconData> moodIcons = [
+      Icons.sentiment_very_dissatisfied,
+      Icons.sentiment_dissatisfied,
+      Icons.sentiment_neutral,
+      Icons.sentiment_satisfied,
+      Icons.sentiment_very_satisfied,
+    ];
+    List<Color> moodColors = [
+      Colors.red.shade300,
+      Colors.orange.shade300,
+      Colors.yellow.shade300,
+      Colors.lightGreen.shade300,
+      Colors.green.shade300,
+    ];
+
+    // Ensure rating is within bounds
+    int rating = moodData.rating.clamp(0, 4);
+
+    // Get mood data
+    final currentMoodLabel = moodLabels[rating];
+    final currentMoodIcon = moodIcons[rating];
+    final currentMoodColor = moodColors[rating];
+
+    // Process history data for the chart
+    List<int> moodHistory = [];
+    List<String> dateLabels = [];
+    
+    if (moodData.history != null && moodData.history!.isNotEmpty) {
+      // Sort by date, most recent last
+      final sortedHistory = List.from(moodData.history!)
+        ..sort((a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime));
+      
+      // Take last 7 days or all if less
+      final displayHistory = sortedHistory.length > 7 
+          ? sortedHistory.sublist(sortedHistory.length - 7) 
+          : sortedHistory;
+      
+      for (var entry in displayHistory) {
+        moodHistory.add((entry['rating'] as int).clamp(0, 4));
+        dateLabels.add(_formatDate(entry['date'] as DateTime));
+      }
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFFF8F2FF),
+              const Color(0xFFFFFAFF),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.secondaryColor.withOpacity(0.2),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header with current mood
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: currentMoodColor.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  Text(
-                    'Last Updated: ${app_date_utils.DateUtils.formatLastUpdated(moodData.lastUpdated)}',
-                    style: Theme.of(context).textTheme.bodyMedium,
+                  child: Icon(
+                    currentMoodIcon,
+                    color: currentMoodColor,
+                    size: 24,
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Current Mood',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          _getMoodEmoji(),
-                          const SizedBox(width: 8),
-                          Text(
-                            _getMoodText(),
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: _getMoodColor().withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: _getMoodColor().withOpacity(0.3),
-                        width: 1,
-                      ),
-                    ),
-                    child: Text(
-                      'Rating: ${moodData.rating}/5',
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: _getMoodColor(),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              if (moodData.history != null && moodData.history!.length > 1) ...[
-                const SizedBox(height: 20),
-                Text(
-                  'Mood Trend',
-                  style: Theme.of(context).textTheme.titleLarge,
                 ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 100,
-                  child: LineChart(
-                    LineChartData(
-                      gridData: FlGridData(
-                        show: true,
-                        drawVerticalLine: false,
-                        horizontalInterval: 1,
-                        getDrawingHorizontalLine: (value) {
-                          return FlLine(
-                            color: Colors.grey.withOpacity(0.2),
-                            strokeWidth: 1,
-                          );
-                        },
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Current Mood',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.secondaryTextColor,
                       ),
-                      titlesData: FlTitlesData(
-                        show: true,
-                        rightTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        topTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        bottomTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            interval: 1,
-                            getTitlesWidget: (value, meta) {
-                              // Only show 1, 3, and 5
-                              if (value % 2 == 0 || value == 0) {
-                                return const SizedBox.shrink();
-                              }
-                              return Text(
-                                value.toInt().toString(),
-                                style: const TextStyle(
-                                  color: AppTheme.secondaryTextColor,
-                                  fontSize: 10,
-                                ),
-                              );
-                            },
-                            reservedSize: 28,
-                          ),
-                        ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      currentMoodLabel,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: currentMoodColor,
                       ),
-                      borderData: FlBorderData(
-                        show: true,
-                        border: Border(
-                          bottom: BorderSide(color: Colors.grey.withOpacity(0.2), width: 1),
-                          left: BorderSide(color: Colors.grey.withOpacity(0.2), width: 1),
-                          right: BorderSide.none,
-                          top: BorderSide.none,
-                        ),
-                      ),
-                      minX: 0,
-                      maxX: (moodData.history!.length - 1).toDouble(),
-                      minY: 0,
-                      maxY: 5,
-                      lineBarsData: [
-                        LineChartBarData(
-                          spots: _getChartData(),
-                          isCurved: true,
-                          color: AppTheme.accentColor,
-                          barWidth: 3,
-                          isStrokeCapRound: true,
-                          dotData: FlDotData(
-                            show: true,
-                            getDotPainter: (spot, percent, barData, index) {
-                              return FlDotCirclePainter(
-                                radius: 4,
-                                color: AppTheme.accentColor,
-                                strokeWidth: 1,
-                                strokeColor: Colors.white,
-                              );
-                            },
-                          ),
-                          belowBarData: BarAreaData(
-                            show: true,
-                            color: AppTheme.accentColor.withOpacity(0.2),
-                          ),
-                        ),
-                      ],
-                      lineTouchData: LineTouchData(
-                        touchTooltipData: LineTouchTooltipData(
-                          tooltipBgColor: Colors.white,
-                          getTooltipItems: (touchedSpots) {
-                            return touchedSpots.map((touchedSpot) {
-                              final index = touchedSpot.x.toInt();
-                              if (index >= 0 && index < moodData.history!.length) {
-                                final date = moodData.history![index]['date'] as DateTime;
-                                return LineTooltipItem(
-                                  '${app_date_utils.DateUtils.formatDate(date)}\nRating: ${touchedSpot.y.toInt()}',
-                                  const TextStyle(color: AppTheme.primaryTextColor),
-                                );
-                              }
-                              return null;
-                            }).toList();
-                          },
-                        ),
-                      ),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.secondaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'Log Mood',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.secondaryColor,
                     ),
                   ),
                 ),
               ],
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Mood selector
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: List.generate(5, (index) {
+                final isSelected = index == rating;
+                return Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isSelected 
+                            ? moodColors[index] 
+                            : moodColors[index].withOpacity(0.1),
+                        shape: BoxShape.circle,
+                        border: isSelected
+                            ? Border.all(color: moodColors[index], width: 2)
+                            : null,
+                      ),
+                      child: Icon(
+                        moodIcons[index],
+                        color: isSelected 
+                            ? Colors.white 
+                            : moodColors[index],
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      moodLabels[index],
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        color: isSelected 
+                            ? AppTheme.primaryTextColor 
+                            : AppTheme.secondaryTextColor,
+                      ),
+                    ),
+                  ],
+                );
+              }),
+            ),
+            
+            if (moodHistory.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              
+              // Mood history chart
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Mood History',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.primaryTextColor,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 120,
+                    child: _buildMoodChart(
+                      context,
+                      moodHistory, 
+                      dateLabels, 
+                      moodColors,
+                    ),
+                  ),
+                ],
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _getMoodEmoji() {
-    switch (moodData.rating) {
-      case 1:
-        return const Icon(Icons.sentiment_very_dissatisfied, color: Colors.red, size: 24);
-      case 2:
-        return const Icon(Icons.sentiment_dissatisfied, color: Colors.orange, size: 24);
-      case 3:
-        return const Icon(Icons.sentiment_neutral, color: Colors.amber, size: 24);
-      case 4:
-        return const Icon(Icons.sentiment_satisfied, color: Colors.lightGreen, size: 24);
-      case 5:
-        return const Icon(Icons.sentiment_very_satisfied, color: Colors.green, size: 24);
-      default:
-        return const Icon(Icons.sentiment_neutral, color: Colors.grey, size: 24);
-    }
+  Widget _buildMoodChart(
+    BuildContext context, 
+    List<int> moodHistory, 
+    List<String> dateLabels,
+    List<Color> moodColors,
+  ) {
+    return Column(
+      children: [
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: List.generate(moodHistory.length, (index) {
+              final mood = moodHistory[index];
+              final barHeight = (mood + 1) / 5 * 70; // Scale to max height
+              
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Container(
+                        height: barHeight,
+                        decoration: BoxDecoration(
+                          color: moodColors[mood],
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+        const SizedBox(height: 8),
+        // Date labels
+        Row(
+          children: dateLabels.map((date) => 
+            Expanded(
+              child: Text(
+                date,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: AppTheme.secondaryTextColor,
+                ),
+              ),
+            )
+          ).toList(),
+        ),
+      ],
+    );
   }
-
-  String _getMoodText() {
-    switch (moodData.rating) {
-      case 1:
-        return 'Very Sad';
-      case 2:
-        return 'Sad';
-      case 3:
-        return 'Neutral';
-      case 4:
-        return 'Happy';
-      case 5:
-        return 'Very Happy';
-      default:
-        return 'Unknown';
-    }
-  }
-
-  Color _getMoodColor() {
-    switch (moodData.rating) {
-      case 1:
-        return Colors.red;
-      case 2:
-        return Colors.orange;
-      case 3:
-        return Colors.amber;
-      case 4:
-        return Colors.lightGreen;
-      case 5:
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  List<FlSpot> _getChartData() {
-    if (moodData.history == null || moodData.history!.isEmpty) {
-      return [];
-    }
+  
+  String _formatDate(DateTime date) {
+    final day = date.day;
+    final month = date.month;
     
-    // Sort history by date
-    final sortedHistory = List<dynamic>.from(moodData.history!)
-      ..sort((a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime));
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
     
-    final List<FlSpot> spots = [];
-    for (int i = 0; i < sortedHistory.length; i++) {
-      final rating = sortedHistory[i]['rating'] as int;
-      spots.add(FlSpot(i.toDouble(), rating.toDouble()));
-    }
-    
-    return spots;
+    return '$day ${months[month - 1]}';
   }
 } 

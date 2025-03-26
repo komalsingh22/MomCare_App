@@ -110,7 +110,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                             height: 18,
                             width: 3,
                             decoration: BoxDecoration(
-                              color: AppTheme.primaryColor.withOpacity(0.7),
+                              color: AppTheme.primaryColor,
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),
@@ -296,7 +296,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: AppTheme.primaryColor.withOpacity(0.3),
+              color: AppTheme.primaryColor,
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -316,7 +316,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
           icon: Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white,
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.add, size: 22),
@@ -348,7 +348,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryColor.withOpacity(0.05),
+            color: AppTheme.primaryColor,
             offset: const Offset(0, 2),
             blurRadius: 8,
           ),
@@ -367,7 +367,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primaryColor.withOpacity(0.2),
+                      color: AppTheme.primaryColor,
                       offset: const Offset(0, 3),
                       blurRadius: 8,
                     ),
@@ -412,14 +412,14 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.secondaryColor.withOpacity(0.2),
+                      color: AppTheme.secondaryColor,
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
                 child: CircleAvatar(
-                  backgroundColor: AppTheme.secondaryColor.withOpacity(0.15),
+                  backgroundColor: AppTheme.secondaryColor,
                   radius: 20,
                   child: const Icon(
                     Icons.person_outline,
@@ -469,7 +469,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: iconColor.withOpacity(0.1),
+            color: iconColor,
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -483,7 +483,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
           onTap: () {
             // Navigate to vital sign details
           },
-          splashColor: iconColor.withOpacity(0.1),
+          splashColor: iconColor,
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -496,7 +496,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: iconColor.withOpacity(0.15),
+                        color: iconColor,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
@@ -627,8 +627,8 @@ class _ChartPainter extends CustomPainter {
     final fillPaint = Paint()
       ..shader = LinearGradient(
         colors: [
-          color.withOpacity(0.3),
-          color.withOpacity(0.05),
+          color,
+          color,
         ],
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
