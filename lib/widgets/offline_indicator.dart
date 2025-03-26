@@ -6,10 +6,10 @@ class OfflineIndicator extends StatelessWidget {
   final VoidCallback onTap;
 
   const OfflineIndicator({
-    Key? key,
+    super.key,
     required this.isOffline,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

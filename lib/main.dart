@@ -10,7 +10,7 @@ void main() {
 }
 
 class HealthApp extends StatelessWidget {
-  const HealthApp({Key? key}) : super(key: key);
+  const HealthApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +37,7 @@ class HealthApp extends StatelessWidget {
 }
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();

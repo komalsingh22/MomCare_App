@@ -9,10 +9,10 @@ class MoodWidget extends StatelessWidget {
   final VoidCallback onTap;
 
   const MoodWidget({
-    Key? key,
+    super.key,
     required this.moodData,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

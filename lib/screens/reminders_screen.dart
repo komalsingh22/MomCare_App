@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:health_app/theme/app_theme.dart';
 
 class RemindersScreen extends StatefulWidget {
-  const RemindersScreen({Key? key}) : super(key: key);
+  const RemindersScreen({super.key});
 
   @override
   State<RemindersScreen> createState() => _RemindersScreenState();

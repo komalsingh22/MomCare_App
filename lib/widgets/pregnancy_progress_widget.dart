@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:health_app/models/health_data.dart';
 import 'package:health_app/theme/app_theme.dart';
-import 'package:health_app/utils/date_utils.dart' as app_date_utils;
+
 
 class PregnancyProgressWidget extends StatelessWidget {
   final PregnancyData pregnancyData;
   final VoidCallback onTap;
 
   const PregnancyProgressWidget({
-    Key? key,
+    super.key,
     required this.pregnancyData,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

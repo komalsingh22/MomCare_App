@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:health_app/theme/app_theme.dart';
 
 class ResourcesScreen extends StatefulWidget {
-  const ResourcesScreen({Key? key}) : super(key: key);
+  const ResourcesScreen({super.key});
 
   @override
   State<ResourcesScreen> createState() => _ResourcesScreenState();

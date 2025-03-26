@@ -7,10 +7,10 @@ class HealthAlertWidget extends StatelessWidget {
   final VoidCallback onTap;
 
   const HealthAlertWidget({
-    Key? key,
+    super.key,
     required this.alerts,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +87,7 @@ class HealthAlertWidget extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
-                ...alerts.map((alert) => _buildAlertItem(context, alert)).toList(),
+                ...alerts.map((alert) => _buildAlertItem(context, alert)),
               ],
             ),
           ),
