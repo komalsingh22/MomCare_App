@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:health_app/theme/app_theme.dart';
+// import 'package:health_app/theme/app_theme.dart';
 
 class OfflineIndicator extends StatelessWidget {
   final bool isOffline;

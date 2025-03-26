@@ -66,7 +66,6 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
             OfflineIndicator(
               isOffline: _isOffline,
               onTap: () {
-                // Show connectivity options or refresh
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Checking network connection...'),
@@ -83,7 +82,6 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
-                  // Refresh data
                   await Future.delayed(const Duration(milliseconds: 1500));
                   _loadMockData();
                   setState(() {});
@@ -94,9 +92,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                     // Pregnancy Progress Widget
                     PregnancyProgressWidget(
                       pregnancyData: _pregnancyData,
-                      onTap: () {
-                        // Navigate to pregnancy details screen
-                      },
+                      onTap: () {},
                     ),
                     
                     const SizedBox(height: 16),
@@ -206,9 +202,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                     
                     MoodWidget(
                       moodData: _moodData,
-                      onTap: () {
-                        // Navigate to mental health details screen
-                      },
+                      onTap: () {},
                     ),
                     
                     const SizedBox(height: 24),
@@ -240,9 +234,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                       
                       HealthAlertWidget(
                         alerts: _healthAlerts,
-                        onTap: () {
-                          // Navigate to alerts screen
-                        },
+                        onTap: () {},
                       ),
                       const SizedBox(height: 24),
                     ],
@@ -276,13 +268,10 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                       margin: const EdgeInsets.only(bottom: 12),
                       child: HealthReportWidget(
                         report: report,
-                        onTap: () {
-                          // Navigate to report details screen
-                        },
+                        onTap: () {},
                       ),
                     )),
                     
-                    // Add bottom padding for floating action button
                     const SizedBox(height: 80),
                   ],
                 ),
@@ -357,7 +346,6 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // App title and logo
           Row(
             children: [
               Container(
@@ -367,7 +355,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primaryColor,
+                      color: AppTheme.primaryColor.withOpacity(0.5),
                       offset: const Offset(0, 3),
                       blurRadius: 8,
                     ),
@@ -402,7 +390,6 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
             ],
           ),
           
-          // Profile icon with notification badge
           Stack(
             children: [
               Container(
@@ -480,16 +467,13 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
         borderRadius: BorderRadius.circular(16),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () {
-            // Navigate to vital sign details
-          },
+          onTap: () {},
           splashColor: iconColor,
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header with icon and timestamp
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -505,11 +489,15 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                         size: 24,
                       ),
                     ),
-                    Text(
-                      app_date_utils.DateUtils.formatLastUpdated(vitalSign.lastUpdated),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.secondaryTextColor,
-                        fontSize: 10,
+                    Flexible(
+                      child: Text(
+                        app_date_utils.DateUtils.formatLastUpdated(vitalSign.lastUpdated),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.secondaryTextColor,
+                          fontSize: 10,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -517,7 +505,6 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                 
                 const Spacer(),
                 
-                // Parameter name
                 Text(
                   vitalSign.name,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -528,29 +515,31 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                 
                 const SizedBox(height: 6),
                 
-                // Value and unit
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Text(
-                      vitalSign.value,
-                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: iconColor,
+                // Fixed overflow issue here
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        vitalSign.value,
+                        style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: iconColor,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      vitalSign.unit,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.secondaryTextColor,
+                      const SizedBox(width: 4),
+                      Text(
+                        vitalSign.unit,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.secondaryTextColor,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 
-                // Mini chart if has history
                 if (vitalSign.history != null && vitalSign.history!.length > 1) ...[
                   const SizedBox(height: 12),
                   SizedBox(
@@ -570,31 +559,26 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
   }
   
   Widget _buildMiniChart(VitalSign vitalSign, Color color) {
-    // Get normalized data points
     final List<double> dataPoints = [];
     
     if (vitalSign is BloodPressure) {
-      // Get systolic values
       for (final entry in vitalSign.history!) {
         final systolic = double.tryParse(entry['systolic'] ?? '0') ?? 0;
         dataPoints.add(systolic);
       }
     } else {
-      // Get regular values
       for (final entry in vitalSign.history!) {
         final value = double.tryParse(entry['value'] ?? '0') ?? 0;
         dataPoints.add(value);
       }
     }
     
-    // Find min/max to normalize data
     double minValue = dataPoints.reduce((a, b) => a < b ? a : b);
     double maxValue = dataPoints.reduce((a, b) => a > b ? a : b);
     double range = maxValue - minValue;
     
-    // Normalize data between 0.2 and 0.8 (to keep it within the chart area)
     List<double> normalizedData = dataPoints.map((value) {
-      if (range == 0) return 0.5; // If all values are the same
+      if (range == 0) return 0.5;
       return 0.2 + ((value - minValue) / range) * 0.6;
     }).toList();
     
@@ -626,10 +610,7 @@ class _ChartPainter extends CustomPainter {
     
     final fillPaint = Paint()
       ..shader = LinearGradient(
-        colors: [
-          color,
-          color,
-        ],
+        colors: [color, color],
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
@@ -638,15 +619,12 @@ class _ChartPainter extends CustomPainter {
     final path = Path();
     final fillPath = Path();
     
-    // Drawing steps
     double stepX = size.width / (dataPoints.length - 1);
     
-    // Start paths
     path.moveTo(0, size.height * (1 - dataPoints.first));
     fillPath.moveTo(0, size.height);
     fillPath.lineTo(0, size.height * (1 - dataPoints.first));
     
-    // Draw lines
     for (int i = 1; i < dataPoints.length; i++) {
       final x = stepX * i;
       final y = size.height * (1 - dataPoints[i]);
@@ -654,15 +632,13 @@ class _ChartPainter extends CustomPainter {
       fillPath.lineTo(x, y);
     }
     
-    // Close fill path
     fillPath.lineTo(size.width, size.height);
     fillPath.close();
     
-    // Draw the paths
     canvas.drawPath(fillPath, fillPaint);
     canvas.drawPath(path, paint);
   }
   
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-} 
+}
