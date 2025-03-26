@@ -168,7 +168,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                           context,
                           vitalSign: vitalSign,
                           icon: icon,
-                          iconColor: iconColor,
+                          iconColor: iconColor.withOpacity(0.5),
                           gradient: gradient,
                         );
                       }).toList(),
@@ -317,6 +317,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
+                color: Colors.white,
               ),
             ),
           ),
@@ -410,7 +411,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                   radius: 20,
                   child: const Icon(
                     Icons.person_outline,
-                    color: AppTheme.secondaryColor,
+                    color: Colors.white,
                   ),
                 ),
               ),
