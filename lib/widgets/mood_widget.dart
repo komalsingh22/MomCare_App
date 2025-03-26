@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 import 'package:health_app/models/health_data.dart';
 import 'package:health_app/theme/app_theme.dart';
-// import 'package:health_app/utils/date_utils.dart' as app_date_utils;
-// import 'package:fl_chart/fl_chart.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class MoodWidget extends StatelessWidget {
   final MoodData moodData;
@@ -16,6 +16,13 @@ class MoodWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Debug the mood data
+    print('MOOD WIDGET: Original mood rating = ${moodData.rating}');
+    
+    // Convert the rating to an index between 0-4 (ensure it's within bounds)
+    final int ratingIndex = max(0, min(4, moodData.rating - 1));
+    print('MOOD WIDGET: Adjusted mood index = $ratingIndex (0-4 scale)');
+    
     List<String> moodLabels = ['Very Low', 'Low', 'Neutral', 'Good', 'Excellent'];
     List<IconData> moodIcons = [
       Icons.sentiment_very_dissatisfied,
@@ -32,13 +39,10 @@ class MoodWidget extends StatelessWidget {
       Colors.green.shade300,
     ];
 
-    // Ensure rating is within bounds
-    int rating = moodData.rating.clamp(0, 4);
-
     // Get mood data
-    final currentMoodLabel = moodLabels[rating];
-    final currentMoodIcon = moodIcons[rating];
-    final currentMoodColor = moodColors[rating];
+    final currentMoodLabel = moodLabels[ratingIndex];
+    final currentMoodIcon = moodIcons[ratingIndex];
+    final currentMoodColor = moodColors[ratingIndex];
 
     // Process history data for the chart
     List<int> moodHistory = [];
@@ -55,7 +59,9 @@ class MoodWidget extends StatelessWidget {
           : sortedHistory;
       
       for (var entry in displayHistory) {
-        moodHistory.add((entry['rating'] as int).clamp(0, 4));
+        final rating = entry['rating'] as int;
+        // Convert the 1-5 rating to 0-4 index
+        moodHistory.add((rating - 1).clamp(0, 4));
         dateLabels.add(_formatDate(entry['date'] as DateTime));
       }
     }
@@ -130,13 +136,24 @@ class MoodWidget extends StatelessWidget {
                     color: AppTheme.secondaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text(
-                    'Log Mood',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.secondaryColor,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.update,
+                        size: 12,
+                        color: AppTheme.secondaryColor,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Updated',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.secondaryColor,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -144,14 +161,15 @@ class MoodWidget extends StatelessWidget {
             
             const SizedBox(height: 24),
             
-            // Mood selector
+            // Mood selector visualization
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: List.generate(5, (index) {
-                final isSelected = index == rating;
+                final isSelected = index == ratingIndex;
                 return Column(
                   children: [
-                    Container(
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         color: isSelected 
@@ -161,6 +179,13 @@ class MoodWidget extends StatelessWidget {
                         border: isSelected
                             ? Border.all(color: moodColors[index], width: 2)
                             : null,
+                        boxShadow: isSelected ? [
+                          BoxShadow(
+                            color: moodColors[index].withOpacity(0.5),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          )
+                        ] : null,
                       ),
                       child: Icon(
                         moodIcons[index],
@@ -193,13 +218,25 @@ class MoodWidget extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Mood History',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.primaryTextColor,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Mood History',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primaryTextColor,
+                        ),
+                      ),
+                      Text(
+                        '${moodHistory.length} day trend',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.secondaryTextColor,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
@@ -226,52 +263,133 @@ class MoodWidget extends StatelessWidget {
     List<String> dateLabels,
     List<Color> moodColors,
   ) {
-    return Column(
-      children: [
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: List.generate(moodHistory.length, (index) {
-              final mood = moodHistory[index];
-              final barHeight = (mood + 1) / 5 * 70; // Scale to max height
-              
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Container(
-                        height: barHeight,
-                        decoration: BoxDecoration(
-                          color: moodColors[mood],
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
+    // Define mood labels for the tooltips
+    final List<String> moodLabels = ['Very Low', 'Low', 'Neutral', 'Good', 'Excellent'];
+    
+    if (moodHistory.isEmpty) {
+      return Center(
+        child: Text(
+          'No mood history available',
+          style: TextStyle(
+            color: AppTheme.secondaryTextColor,
+            fontSize: 12,
           ),
         ),
-        const SizedBox(height: 8),
-        // Date labels
-        Row(
-          children: dateLabels.map((date) => 
-            Expanded(
-              child: Text(
-                date,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: AppTheme.secondaryTextColor,
-                ),
-              ),
-            )
-          ).toList(),
+      );
+    }
+
+    // Create spots for line chart
+    final spots = List<FlSpot>.generate(
+      moodHistory.length,
+      (i) => FlSpot(i.toDouble(), moodHistory[i].toDouble()),
+    );
+
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: 1,
+          getDrawingHorizontalLine: (value) {
+            return FlLine(
+              color: Colors.grey.withOpacity(0.1),
+              strokeWidth: 1,
+              dashArray: [5, 5],
+            );
+          },
         ),
-      ],
+        titlesData: FlTitlesData(
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 20,
+              getTitlesWidget: (value, meta) {
+                final int index = value.toInt();
+                if (index < 0 || index >= dateLabels.length) {
+                  return const SizedBox.shrink();
+                }
+                return Padding(
+                  padding: const EdgeInsets.only(top: 5),
+                  child: Text(
+                    dateLabels[index],
+                    style: const TextStyle(
+                      color: AppTheme.secondaryTextColor,
+                      fontSize: 8,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: false,
+            ),
+          ),
+          topTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: false,
+            ),
+          ),
+          rightTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: false,
+            ),
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        minY: 0,
+        maxY: 4,
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            barWidth: 3,
+            color: AppTheme.secondaryColor,
+            isStrokeCapRound: true,
+            dotData: FlDotData(
+              show: true,
+              getDotPainter: (spot, percent, barData, index) {
+                return FlDotCirclePainter(
+                  radius: 5,
+                  color: moodColors[spot.y.toInt()],
+                  strokeWidth: 1,
+                  strokeColor: Colors.white,
+                );
+              },
+            ),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                colors: [
+                  AppTheme.secondaryColor.withOpacity(0.3),
+                  AppTheme.secondaryColor.withOpacity(0.0),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+          ),
+        ],
+        lineTouchData: LineTouchData(
+          enabled: true,
+          touchTooltipData: LineTouchTooltipData(
+            tooltipBgColor: Colors.white,
+            getTooltipItems: (touchedSpots) {
+              return touchedSpots.map((spot) {
+                final moodIndex = spot.y.toInt();
+                return LineTooltipItem(
+                  moodLabels[moodIndex],
+                  TextStyle(
+                    color: moodColors[moodIndex],
+                    fontWeight: FontWeight.bold,
+                  ),
+                );
+              }).toList();
+            },
+          ),
+        ),
+      ),
     );
   }
   

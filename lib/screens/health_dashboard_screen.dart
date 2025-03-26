@@ -4,11 +4,19 @@ import 'package:health_app/screens/update_health_data_screen.dart';
 import 'package:health_app/theme/app_theme.dart';
 import 'package:health_app/utils/connectivity_helper.dart';
 import 'package:health_app/widgets/health_alert_widget.dart';
+import 'package:health_app/widgets/offline_indicator.dart';
 import 'package:health_app/widgets/health_report_widget.dart';
 import 'package:health_app/widgets/mood_widget.dart';
-import 'package:health_app/widgets/offline_indicator.dart';
 import 'package:health_app/widgets/pregnancy_progress_widget.dart';
 import 'package:health_app/utils/date_utils.dart' as app_date_utils;
+import 'package:health_app/services/database_service.dart';
+import 'package:health_app/services/ai_service.dart';
+import 'package:fl_chart/fl_chart.dart';
+// import 'package:health_app/models/vital_sign.dart';
+// import 'package:health_app/models/health_alert.dart';
+// import 'package:health_app/widgets/vital_sign_widget.dart';
+// import 'package:health_app/widgets/pregnancy_widget.dart';
+// import '../models/mood_data.dart' as mood_models;
 
 class HealthDashboardScreen extends StatefulWidget {
   const HealthDashboardScreen({super.key});
@@ -21,12 +29,18 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
   late ConnectivityHelper _connectivityHelper;
   bool _isOffline = false;
   
-  // Mock data
+  // Data
   late PregnancyData _pregnancyData;
-  late List<VitalSign> _vitalSigns;
+  late List<VitalSign> _vitalSigns = [];
   late MoodData _moodData;
   late List<HealthReport> _healthReports;
-  late List<HealthAlert> _healthAlerts;
+  late List<HealthAlert> _healthAlerts = [];
+  final DatabaseService _databaseService = DatabaseService();
+  final AIService _aiService = AIService();
+  bool _isLoading = true;
+  
+  // Latest health data
+  Map<String, dynamic>? _latestHealthData;
 
   @override
   void initState() {
@@ -38,16 +52,105 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
       });
     });
     
-    // Load mock data
+    // Initialize with mock data as a fallback only
     _loadMockData();
+    
+    // Load real data from database (which will override mock data)
+    _loadData();
   }
 
   void _loadMockData() {
     _pregnancyData = MockHealthDataProvider.getPregnancyData();
-    _vitalSigns = MockHealthDataProvider.getVitalSigns();
     _moodData = MockHealthDataProvider.getMoodData();
     _healthReports = MockHealthDataProvider.getHealthReports();
-    _healthAlerts = MockHealthDataProvider.getHealthAlerts();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      print('Loading dashboard data...');
+      
+      // Get vital signs (weight, BP, etc.)
+      final vitalSigns = await _databaseService.getVitalSigns();
+      print('Loaded ${vitalSigns.length} vital signs');
+      
+      // Get health alerts
+      final alerts = await _databaseService.getHealthAlerts();
+      print('Loaded ${alerts.length} health alerts');
+      
+      // Load mood data using the new method
+      final moodData = await _databaseService.getMoodData();
+      print('MOOD DATA from DB: Current rating = ${moodData['currentMoodRating']}, History entries = ${moodData['moodHistory'].length}');
+
+      // Get pregnancy data if available
+      final pregnancyData = await _databaseService.getPregnancyData();
+      
+      setState(() {
+        _vitalSigns = vitalSigns;
+        _healthAlerts = alerts;
+        
+        // Update pregnancy data if available
+        if (pregnancyData != null && 
+            pregnancyData['due_date'] != null && 
+            pregnancyData['due_date'].isNotEmpty) {
+          _pregnancyData = PregnancyData(
+            id: _pregnancyData.id,
+            lastUpdated: DateTime.now(),
+            currentMonth: pregnancyData['current_month'] ?? 1,
+            dueDate: DateTime.parse(pregnancyData['due_date']),
+            milestones: _pregnancyData.milestones,
+          );
+          print('Updated pregnancy data: Due date: ${pregnancyData['due_date']}, Month: ${pregnancyData['current_month']}');
+        } else {
+          _pregnancyData = PregnancyData(
+            id: _pregnancyData.id,
+            lastUpdated: DateTime.now(),
+            currentMonth: 1,
+            dueDate: DateTime.now(),
+            milestones: _pregnancyData.milestones,
+          );
+        }
+        
+        // Update mood data - IMPORTANT part
+        if (moodData['currentMoodRating'] != null) {
+          // Log previous mood data
+          print('DASHBOARD: Updating mood from ${_moodData.rating} to ${moodData['currentMoodRating']}');
+          
+          List<dynamic> historyEntries = [];
+          
+          for (var entry in moodData['moodHistory']) {
+            historyEntries.add({
+              'date': entry['date'],
+              'rating': entry['rating'],
+            });
+          }
+          
+          _moodData = MoodData(
+            id: _moodData.id,
+            lastUpdated: DateTime.now(),
+            rating: moodData['currentMoodRating'],
+            history: historyEntries,
+          );
+          
+          // Log updated mood data for verification
+          print('DASHBOARD: Updated mood to rating = ${_moodData.rating}, History size = ${_moodData.history?.length ?? 0}');
+        } else {
+          print('DASHBOARD: No mood data found, keeping current value of ${_moodData.rating}');
+        }
+        
+        _isLoading = false;
+      });
+      
+      print('Dashboard data load complete');
+    } catch (e) {
+      print('Error loading dashboard data: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -60,273 +163,225 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            // Offline indicator
-            OfflineIndicator(
-              isOffline: _isOffline,
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Checking network connection...'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              },
-            ),
-            
-            // Header
-            _buildHeader(),
-            
-            // Main content (scrollable)
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () async {
-                  await Future.delayed(const Duration(milliseconds: 1500));
-                  _loadMockData();
-                  setState(() {});
-                },
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-                  children: [
-                    // Pregnancy Progress Widget
-                    PregnancyProgressWidget(
-                      pregnancyData: _pregnancyData,
-                      onTap: () {},
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Section title
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12.0, left: 4.0),
-                      child: Row(
-                        children: [
-                          Container(
-                            height: 18,
-                            width: 3,
-                            decoration: BoxDecoration(
-                              color: AppTheme.primaryColor,
-                              borderRadius: BorderRadius.circular(4),
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: _loadData,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(20, 16, 20, 100),
+                  child: Column(
+                    children: [
+                      // Offline indicator
+                      OfflineIndicator(
+                        isOffline: _isOffline,
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Checking network connection...'),
+                              duration: Duration(seconds: 2),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Vital Signs',
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    // Vital Signs Grid
-                    GridView.count(
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      shrinkWrap: true,
-                      childAspectRatio: 0.85,
-                      children: _vitalSigns.map((vitalSign) {
-                        IconData icon;
-                        Color iconColor;
-                        LinearGradient? gradient;
-                        
-                        if (vitalSign is Weight) {
-                          icon = Icons.monitor_weight_outlined;
-                          iconColor = const Color(0xFFE667A0);
-                          gradient = const LinearGradient(
-                            colors: [Color(0xFFFFE0EB), Color(0xFFFFF5F8)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
                           );
-                        } else if (vitalSign is BloodPressure) {
-                          icon = Icons.favorite_outline;
-                          iconColor = const Color(0xFFFF5C8A);
-                          gradient = const LinearGradient(
-                            colors: [Color(0xFFFFE4EA), Color(0xFFFFF6F8)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          );
-                        } else if (vitalSign is Temperature) {
-                          icon = Icons.thermostat_outlined;
-                          iconColor = const Color(0xFFFF8E7F);
-                          gradient = const LinearGradient(
-                            colors: [Color(0xFFFFECE8), Color(0xFFFFF9F8)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          );
-                        } else {
-                          icon = Icons.medical_services_outlined;
-                          iconColor = AppTheme.primaryColor;
-                          gradient = null;
-                        }
-                        
-                        return _buildVitalSignCard(
-                          context,
-                          vitalSign: vitalSign,
-                          icon: icon,
-                          iconColor: iconColor.withOpacity(0.5),
-                          gradient: gradient,
-                        );
-                      }).toList(),
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Mental Health Widget
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12.0, left: 4.0),
-                      child: Row(
-                        children: [
-                          Container(
-                            height: 18,
-                            width: 3,
-                            decoration: BoxDecoration(
-                              color: AppTheme.secondaryColor,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Mental Health',
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    MoodWidget(
-                      moodData: _moodData,
-                      onTap: () {},
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Health Alerts
-                    if (_healthAlerts.isNotEmpty) ...[
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12.0, left: 4.0),
-                        child: Row(
-                          children: [
-                            Container(
-                              height: 18,
-                              width: 3,
-                              decoration: BoxDecoration(
-                                color: Colors.red.shade300,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Alerts',
-                              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
+                        },
                       ),
                       
-                      HealthAlertWidget(
-                        alerts: _healthAlerts,
-                        onTap: () {},
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                    
-                    // Section title
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12.0, left: 4.0),
-                      child: Row(
+                      // Header
+                      _buildHeader(),
+                      
+                      // Main content (scrollable)
+                      Column(
                         children: [
-                          Container(
-                            height: 18,
-                            width: 3,
-                            decoration: BoxDecoration(
-                              color: AppTheme.primaryColor,
-                              borderRadius: BorderRadius.circular(4),
+                          // Pregnancy Progress Widget
+                          PregnancyProgressWidget(
+                            pregnancyData: _pregnancyData,
+                            onTap: () {},
+                          ),
+                          
+                          const SizedBox(height: 16),
+                          
+                          // Section title
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12.0, left: 4.0),
+                            child: Row(
+                              children: [
+                                Container(
+                                  height: 18,
+                                  width: 3,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryColor,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Vital Signs',
+                                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Health Reports',
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
+                          
+                          // Vital Signs Grid
+                          GridView.count(
+                            physics: const NeverScrollableScrollPhysics(),
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                            shrinkWrap: true,
+                            childAspectRatio: 0.85,
+                            children: _vitalSigns.map((vitalSign) {
+                              IconData icon;
+                              Color iconColor;
+                              LinearGradient? gradient;
+                              
+                              if (vitalSign is Weight) {
+                                icon = Icons.monitor_weight_outlined;
+                                iconColor = const Color(0xFFE667A0);
+                                gradient = const LinearGradient(
+                                  colors: [Color(0xFFFFE0EB), Color(0xFFFFF5F8)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                );
+                              } else if (vitalSign is BloodPressure) {
+                                icon = Icons.favorite_outline;
+                                iconColor = const Color(0xFFFF5C8A);
+                                gradient = const LinearGradient(
+                                  colors: [Color(0xFFFFE4EA), Color(0xFFFFF6F8)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                );
+                              } else if (vitalSign is Temperature) {
+                                icon = Icons.thermostat_outlined;
+                                iconColor = const Color(0xFFFF8E7F);
+                                gradient = const LinearGradient(
+                                  colors: [Color(0xFFFFECE8), Color(0xFFFFF9F8)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                );
+                              } else {
+                                icon = Icons.medical_services_outlined;
+                                iconColor = AppTheme.primaryColor;
+                                gradient = null;
+                              }
+                              
+                              return _buildVitalSignCard(
+                                context,
+                                vitalSign: vitalSign,
+                                icon: icon,
+                                iconColor: iconColor.withOpacity(0.5),
+                                gradient: gradient,
+                              );
+                            }).toList(),
+                          ),
+                          
+                          const SizedBox(height: 24),
+                          
+                          // Mental Health Widget
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12.0, left: 4.0),
+                            child: Row(
+                              children: [
+                                Container(
+                                  height: 18,
+                                  width: 3,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.secondaryColor,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Mental Health',
+                                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
+                          
+                          MoodWidget(
+                            moodData: _moodData,
+                            onTap: () {},
+                          ),
+                          
+                          const SizedBox(height: 24),
+                          
+                          // Health Alerts
+                          if (_healthAlerts.isNotEmpty) ...[
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12.0, left: 4.0),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    height: 18,
+                                    width: 3,
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.shade300,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Alerts',
+                                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            
+                            HealthAlertWidget(
+                              alerts: _healthAlerts,
+                              onTap: () {},
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+                          
+                          // Section title
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12.0, left: 4.0),
+                            child: Row(
+                              children: [
+                                Container(
+                                  height: 18,
+                                  width: 3,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryColor,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Health Reports',
+                                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          
+                          // Health Reports
+                          ..._healthReports.map((report) => Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: HealthReportWidget(
+                              report: report,
+                              onTap: () {},
+                            ),
+                          )),
+                          
+                          const SizedBox(height: 80),
                         ],
                       ),
-                    ),
-                    
-                    // Health Reports
-                    ..._healthReports.map((report) => Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: HealthReportWidget(
-                        report: report,
-                        onTap: () {},
-                      ),
-                    )),
-                    
-                    const SizedBox(height: 80),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
       ),
-      floatingActionButton: Container(
-        margin: const EdgeInsets.only(bottom: 16, right: 16),
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.primaryColor,
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: FloatingActionButton.extended(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const UpdateHealthDataScreen(),
-              ),
-            );
-          },
-          backgroundColor: AppTheme.primaryColor,
-          icon: Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.add, size: 22),
-          ),
-          label: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 12),
-            child: Text(
-              'Update Data',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-      ),
+      floatingActionButton: _buildUpdateDataButton(),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
@@ -561,85 +616,92 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
   
   Widget _buildMiniChart(VitalSign vitalSign, Color color) {
     final List<double> dataPoints = [];
+    final List<DateTime> dates = [];
     
     if (vitalSign is BloodPressure) {
       for (final entry in vitalSign.history!) {
         final systolic = double.tryParse(entry['systolic'] ?? '0') ?? 0;
         dataPoints.add(systolic);
+        if (entry['date'] is DateTime) {
+          dates.add(entry['date'] as DateTime);
+        }
       }
     } else {
       for (final entry in vitalSign.history!) {
         final value = double.tryParse(entry['value'] ?? '0') ?? 0;
         dataPoints.add(value);
+        if (entry['date'] is DateTime) {
+          dates.add(entry['date'] as DateTime);
+        }
       }
     }
     
-    double minValue = dataPoints.reduce((a, b) => a < b ? a : b);
-    double maxValue = dataPoints.reduce((a, b) => a > b ? a : b);
-    double range = maxValue - minValue;
-    
-    List<double> normalizedData = dataPoints.map((value) {
-      if (range == 0) return 0.5;
-      return 0.2 + ((value - minValue) / range) * 0.6;
-    }).toList();
-    
-    return CustomPaint(
-      size: const Size(double.infinity, 40),
-      painter: _ChartPainter(
-        dataPoints: normalizedData,
-        color: color,
+    if (dataPoints.isEmpty) {
+      return Container(height: 40);
+    }
+
+    // Create spots for LineChart
+    final spots = List<FlSpot>.generate(
+      dataPoints.length,
+      (i) => FlSpot(i.toDouble(), dataPoints[i]),
+    );
+
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(show: false),
+        titlesData: FlTitlesData(show: false),
+        borderData: FlBorderData(show: false),
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            color: color,
+            barWidth: 2,
+            isStrokeCapRound: true,
+            dotData: FlDotData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              color: color.withOpacity(0.2),
+              gradient: LinearGradient(
+                colors: [
+                  color.withOpacity(0.6),
+                  color.withOpacity(0.01),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+            shadow: Shadow(
+              color: color.withOpacity(0.3),
+              blurRadius: 4,
+              offset: const Offset(0, 3),
+            ),
+          ),
+        ],
+        lineTouchData: LineTouchData(enabled: false),
+        backgroundColor: Colors.transparent,
       ),
     );
   }
-}
 
-class _ChartPainter extends CustomPainter {
-  final List<double> dataPoints;
-  final Color color;
-  
-  _ChartPainter({required this.dataPoints, required this.color});
-  
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (dataPoints.isEmpty) return;
-    
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    
-    final fillPaint = Paint()
-      ..shader = LinearGradient(
-        colors: [color, color],
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
-      ..style = PaintingStyle.fill;
-    
-    final path = Path();
-    final fillPath = Path();
-    
-    double stepX = size.width / (dataPoints.length - 1);
-    
-    path.moveTo(0, size.height * (1 - dataPoints.first));
-    fillPath.moveTo(0, size.height);
-    fillPath.lineTo(0, size.height * (1 - dataPoints.first));
-    
-    for (int i = 1; i < dataPoints.length; i++) {
-      final x = stepX * i;
-      final y = size.height * (1 - dataPoints[i]);
-      path.lineTo(x, y);
-      fillPath.lineTo(x, y);
-    }
-    
-    fillPath.lineTo(size.width, size.height);
-    fillPath.close();
-    
-    canvas.drawPath(fillPath, fillPaint);
-    canvas.drawPath(path, paint);
+  Widget _buildUpdateDataButton() {
+    return FloatingActionButton.extended(
+      onPressed: () async {
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const UpdateHealthDataScreen(),
+          ),
+        );
+        
+        if (result == true) {
+          // Refresh data if returned with true (data was saved)
+          _loadData();
+        }
+      },
+      label: const Text('Update Data'),
+      icon: const Icon(Icons.edit_outlined),
+      backgroundColor: AppTheme.accentColor,
+    );
   }
-  
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

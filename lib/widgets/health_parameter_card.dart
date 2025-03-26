@@ -194,7 +194,7 @@ class HealthParameterCard extends StatelessWidget {
                         lineTouchData: LineTouchData(
                           enabled: true,
                           touchTooltipData: LineTouchTooltipData(
-                            tooltipBgColor: AppTheme.primaryTextColor.withOpacity(0.8),
+                            //tooltipBgColor: AppTheme.primaryTextColor.withOpacity(0.8),
                             tooltipRoundedRadius: 8,
                             getTooltipItems: (touchedSpots) {
                               return touchedSpots.map((touchedSpot) {

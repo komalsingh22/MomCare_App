@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:health_app/theme/app_theme.dart';
 import 'package:health_app/utils/connectivity_helper.dart';
 import 'package:health_app/widgets/offline_indicator.dart';
+import 'package:health_app/services/database_service.dart';
 
 class UpdateHealthDataScreen extends StatefulWidget {
   const UpdateHealthDataScreen({super.key});
@@ -14,6 +15,13 @@ class _UpdateHealthDataScreenState extends State<UpdateHealthDataScreen> with Si
   late TabController _tabController;
   late ConnectivityHelper _connectivityHelper;
   bool _isOffline = false;
+  
+  // Form key for validation
+  final _formKey = GlobalKey<FormState>();
+  
+  // Pregnancy information
+  bool _isPregnant = false;
+  DateTime? _selectedDueDate;
 
   // Form controllers for Manual Entry
   final TextEditingController _pregnancyMonthController = TextEditingController();
@@ -37,6 +45,9 @@ class _UpdateHealthDataScreenState extends State<UpdateHealthDataScreen> with Si
 
   // Uploaded reports
   final List<String> _uploadedReports = [];
+
+  final DatabaseService _dbService = DatabaseService();
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -185,288 +196,312 @@ class _UpdateHealthDataScreenState extends State<UpdateHealthDataScreen> with Si
   Widget _buildManualEntryTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Pregnancy Information Section
-          _buildSectionTitle('Pregnancy Information'),
-          const SizedBox(height: 8),
-          
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _pregnancyMonthController,
-                  decoration: const InputDecoration(
-                    labelText: 'Current Month of Pregnancy',
-                    hintText: 'e.g., 5',
-                    prefixIcon: Icon(Icons.calendar_today),
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: TextFormField(
-                  controller: _dueDateController,
-                  decoration: const InputDecoration(
-                    labelText: 'Expected Due Date',
-                    hintText: 'MM/DD/YYYY',
-                    prefixIcon: Icon(Icons.event),
-                  ),
-                  onTap: () async {
-                    // Show date picker
-                    final DateTime? picked = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now().add(const Duration(days: 90)),
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 300)),
-                    );
-                    if (picked != null) {
-                      _dueDateController.text = '${picked.month}/${picked.day}/${picked.year}';
-                    }
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Pregnancy Information Section
+            _buildSectionTitle('Pregnancy Information'),
+            const SizedBox(height: 8),
+            
+            // Pregnancy checkbox
+            Row(
+              children: [
+                Checkbox(
+                  value: _isPregnant,
+                  onChanged: (value) {
+                    setState(() {
+                      _isPregnant = value ?? false;
+                    });
                   },
                 ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // Vital Signs Section
-          _buildSectionTitle('Vital Signs & Clinical Data'),
-          const SizedBox(height: 8),
-          
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _weightController,
-                  decoration: const InputDecoration(
-                    labelText: 'Weight (kg)',
-                    hintText: 'e.g., 65',
-                    prefixIcon: Icon(Icons.monitor_weight_outlined),
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: TextFormField(
-                  controller: _heightController,
-                  decoration: const InputDecoration(
-                    labelText: 'Height (cm)',
-                    hintText: 'e.g., 165',
-                    prefixIcon: Icon(Icons.height),
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 16),
-          
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _systolicController,
-                  decoration: const InputDecoration(
-                    labelText: 'Blood Pressure (Systolic)',
-                    hintText: 'e.g., 120',
-                    prefixIcon: Icon(Icons.favorite_outline),
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: TextFormField(
-                  controller: _diastolicController,
-                  decoration: const InputDecoration(
-                    labelText: 'Blood Pressure (Diastolic)',
-                    hintText: 'e.g., 80',
-                    prefixIcon: Icon(Icons.favorite_outline),
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 16),
-          
-          TextFormField(
-            controller: _temperatureController,
-            decoration: const InputDecoration(
-              labelText: 'Temperature (°C)',
-              hintText: 'e.g., 36.7',
-              prefixIcon: Icon(Icons.thermostat_outlined),
+                const Text('Currently pregnant'),
+              ],
             ),
-            keyboardType: TextInputType.number,
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // Optional Lab Values
-          _buildSectionTitle('Optional Lab Values'),
-          const SizedBox(height: 8),
-          
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _hemoglobinController,
-                  decoration: const InputDecoration(
-                    labelText: 'Hemoglobin (g/dL)',
-                    hintText: 'e.g., 12.5',
-                    prefixIcon: Icon(Icons.science_outlined),
+            
+            if (_isPregnant) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _pregnancyMonthController,
+                      decoration: const InputDecoration(
+                        labelText: 'Current Month of Pregnancy',
+                        hintText: 'e.g., 5',
+                        prefixIcon: Icon(Icons.calendar_today),
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
                   ),
-                  keyboardType: TextInputType.number,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: TextFormField(
-                  controller: _glucoseController,
-                  decoration: const InputDecoration(
-                    labelText: 'Blood Glucose (mg/dL)',
-                    hintText: 'e.g., 95',
-                    prefixIcon: Icon(Icons.science_outlined),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _dueDateController,
+                      decoration: const InputDecoration(
+                        labelText: 'Expected Due Date',
+                        hintText: 'MM/DD/YYYY',
+                        prefixIcon: Icon(Icons.event),
+                      ),
+                      onTap: () async {
+                        // Show date picker
+                        final DateTime? picked = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.now().add(const Duration(days: 90)),
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime.now().add(const Duration(days: 300)),
+                        );
+                        if (picked != null) {
+                          setState(() {
+                            _selectedDueDate = picked;
+                          });
+                          _dueDateController.text = '${picked.month}/${picked.day}/${picked.year}';
+                        }
+                      },
+                    ),
                   ),
-                  keyboardType: TextInputType.number,
-                ),
+                ],
               ),
             ],
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // Symptom & Lifestyle Data
-          _buildSectionTitle('Symptom & Lifestyle Data'),
-          const SizedBox(height: 8),
-          
-          TextFormField(
-            controller: _symptomsController,
-            decoration: const InputDecoration(
-              labelText: 'Symptoms',
-              hintText: 'e.g., mild headache, slight swelling in feet',
-              prefixIcon: Icon(Icons.sick_outlined),
-            ),
-            maxLines: 2,
-          ),
-          
-          const SizedBox(height: 16),
-          
-          TextFormField(
-            controller: _dietaryLogController,
-            decoration: const InputDecoration(
-              labelText: 'Dietary Log',
-              hintText: 'e.g., breakfast: oatmeal with fruit; lunch: chicken salad...',
-              prefixIcon: Icon(Icons.restaurant_outlined),
-            ),
-            maxLines: 3,
-          ),
-          
-          const SizedBox(height: 16),
-          
-          TextFormField(
-            controller: _physicalActivityController,
-            decoration: const InputDecoration(
-              labelText: 'Physical Activity',
-              hintText: 'e.g., 30 min walking, light stretching...',
-              prefixIcon: Icon(Icons.directions_walk_outlined),
-            ),
-            maxLines: 2,
-          ),
-          
-          const SizedBox(height: 16),
-          
-          TextFormField(
-            controller: _supplementsController,
-            decoration: const InputDecoration(
-              labelText: 'Supplements',
-              hintText: 'e.g., prenatal vitamin, iron, folic acid...',
-              prefixIcon: Icon(Icons.medication_outlined),
-            ),
-            maxLines: 2,
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // Mental Health Assessment
-          _buildSectionTitle('Mental Health Assessment'),
-          const SizedBox(height: 8),
-          
-          Text(
-            'How are you feeling today?',
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-          const SizedBox(height: 8),
-          
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Icon(Icons.sentiment_very_dissatisfied, color: Colors.red),
-              const Icon(Icons.sentiment_dissatisfied, color: Colors.orange),
-              const Icon(Icons.sentiment_neutral, color: Colors.amber),
-              const Icon(Icons.sentiment_satisfied, color: Colors.lightGreen),
-              const Icon(Icons.sentiment_very_satisfied, color: Colors.green),
-            ],
-          ),
-          
-          Slider(
-            value: _moodRating,
-            min: 1,
-            max: 5,
-            divisions: 4,
-            label: _getMoodLabel(),
-            onChanged: (value) {
-              setState(() {
-                _moodRating = value;
-              });
-            },
-          ),
-          
-          const SizedBox(height: 16),
-          
-          Row(
-            children: [
-              Checkbox(
-                value: _hasAnxiety,
-                onChanged: (value) {
-                  setState(() {
-                    _hasAnxiety = value ?? false;
-                  });
-                },
-              ),
-              const Text('Are you experiencing stress or anxiety?'),
-            ],
-          ),
-          
-          if (_hasAnxiety) ...[
+            
+            const SizedBox(height: 24),
+            
+            // Vital Signs Section
+            _buildSectionTitle('Vital Signs & Clinical Data'),
             const SizedBox(height: 8),
+            
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _weightController,
+                    decoration: const InputDecoration(
+                      labelText: 'Weight (kg)',
+                      hintText: 'e.g., 65',
+                      prefixIcon: Icon(Icons.monitor_weight_outlined),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextFormField(
+                    controller: _heightController,
+                    decoration: const InputDecoration(
+                      labelText: 'Height (cm)',
+                      hintText: 'e.g., 165',
+                      prefixIcon: Icon(Icons.height),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 16),
+            
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _systolicController,
+                    decoration: const InputDecoration(
+                      labelText: 'Blood Pressure (Systolic)',
+                      hintText: 'e.g., 120',
+                      prefixIcon: Icon(Icons.favorite_outline),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextFormField(
+                    controller: _diastolicController,
+                    decoration: const InputDecoration(
+                      labelText: 'Blood Pressure (Diastolic)',
+                      hintText: 'e.g., 80',
+                      prefixIcon: Icon(Icons.favorite_outline),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 16),
+            
+            TextFormField(
+              controller: _temperatureController,
+              decoration: const InputDecoration(
+                labelText: 'Temperature (°C)',
+                hintText: 'e.g., 36.7',
+                prefixIcon: Icon(Icons.thermostat_outlined),
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Optional Lab Values
+            _buildSectionTitle('Optional Lab Values'),
+            const SizedBox(height: 8),
+            
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _hemoglobinController,
+                    decoration: const InputDecoration(
+                      labelText: 'Hemoglobin (g/dL)',
+                      hintText: 'e.g., 12.5',
+                      prefixIcon: Icon(Icons.science_outlined),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextFormField(
+                    controller: _glucoseController,
+                    decoration: const InputDecoration(
+                      labelText: 'Blood Glucose (mg/dL)',
+                      hintText: 'e.g., 95',
+                      prefixIcon: Icon(Icons.science_outlined),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Symptom & Lifestyle Data
+            _buildSectionTitle('Symptom & Lifestyle Data'),
+            const SizedBox(height: 8),
+            
+            TextFormField(
+              controller: _symptomsController,
+              decoration: const InputDecoration(
+                labelText: 'Symptoms',
+                hintText: 'e.g., mild headache, slight swelling in feet',
+                prefixIcon: Icon(Icons.sick_outlined),
+              ),
+              maxLines: 2,
+            ),
+            
+            const SizedBox(height: 16),
+            
+            TextFormField(
+              controller: _dietaryLogController,
+              decoration: const InputDecoration(
+                labelText: 'Dietary Log',
+                hintText: 'e.g., breakfast: oatmeal with fruit; lunch: chicken salad...',
+                prefixIcon: Icon(Icons.restaurant_outlined),
+              ),
+              maxLines: 3,
+            ),
+            
+            const SizedBox(height: 16),
+            
+            TextFormField(
+              controller: _physicalActivityController,
+              decoration: const InputDecoration(
+                labelText: 'Physical Activity',
+                hintText: 'e.g., 30 min walking, light stretching...',
+                prefixIcon: Icon(Icons.directions_walk_outlined),
+              ),
+              maxLines: 2,
+            ),
+            
+            const SizedBox(height: 16),
+            
+            TextFormField(
+              controller: _supplementsController,
+              decoration: const InputDecoration(
+                labelText: 'Supplements',
+                hintText: 'e.g., prenatal vitamin, iron, folic acid...',
+                prefixIcon: Icon(Icons.medication_outlined),
+              ),
+              maxLines: 2,
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Mental Health Assessment
+            _buildSectionTitle('Mental Health Assessment'),
+            const SizedBox(height: 8),
+            
             Text(
-              'Intensity level: ${_anxietyLevel.toInt()}',
+              'How are you feeling today?',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
+            const SizedBox(height: 8),
+            
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Icon(Icons.sentiment_very_dissatisfied, color: Colors.red),
+                const Icon(Icons.sentiment_dissatisfied, color: Colors.orange),
+                const Icon(Icons.sentiment_neutral, color: Colors.amber),
+                const Icon(Icons.sentiment_satisfied, color: Colors.lightGreen),
+                const Icon(Icons.sentiment_very_satisfied, color: Colors.green),
+              ],
+            ),
+            
             Slider(
-              value: _anxietyLevel,
-              min: 0,
-              max: 10,
-              divisions: 10,
-              label: _anxietyLevel.toInt().toString(),
+              value: _moodRating,
+              min: 1,
+              max: 5,
+              divisions: 4,
+              label: _getMoodLabel(),
               onChanged: (value) {
                 setState(() {
-                  _anxietyLevel = value;
+                  _moodRating = value;
                 });
               },
             ),
+            
+            const SizedBox(height: 16),
+            
+            Row(
+              children: [
+                Checkbox(
+                  value: _hasAnxiety,
+                  onChanged: (value) {
+                    setState(() {
+                      _hasAnxiety = value ?? false;
+                    });
+                  },
+                ),
+                const Text('Are you experiencing stress or anxiety?'),
+              ],
+            ),
+            
+            if (_hasAnxiety) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Intensity level: ${_anxietyLevel.toInt()}',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              Slider(
+                value: _anxietyLevel,
+                min: 0,
+                max: 10,
+                divisions: 10,
+                label: _anxietyLevel.toInt().toString(),
+                onChanged: (value) {
+                  setState(() {
+                    _anxietyLevel = value;
+                  });
+                },
+              ),
+            ],
+            
+            const SizedBox(height: 40),
           ],
-          
-          const SizedBox(height: 40),
-        ],
+        ),
       ),
     );
   }
@@ -589,28 +624,7 @@ class _UpdateHealthDataScreenState extends State<UpdateHealthDataScreen> with Si
           Expanded(
             flex: 8,
             child: ElevatedButton.icon(
-              onPressed: () {
-                // Save data and generate health record
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Row(
-                      children: [
-                        const Icon(Icons.check_circle_outline, color: Colors.white),
-                        const SizedBox(width: 8),
-                        const Text('Health data updated successfully!'),
-                      ],
-                    ),
-                    behavior: SnackBarBehavior.floating,
-                    backgroundColor: AppTheme.accentColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    duration: const Duration(seconds: 2),
-                    margin: const EdgeInsets.all(12),
-                  ),
-                );
-                Navigator.pop(context);
-              },
+              onPressed: _saveHealthData,
               icon: const Icon(Icons.save_outlined, size: 20),
               label: const Text('Save Data'),
               style: ElevatedButton.styleFrom(
@@ -656,6 +670,135 @@ class _UpdateHealthDataScreenState extends State<UpdateHealthDataScreen> with Si
         return 'Very Happy';
       default:
         return 'Neutral';
+    }
+  }
+
+  Future<void> _saveHealthData() async {
+    // First validate the form
+    if (_formKey.currentState!.validate()) {
+      try {
+        // Even if validation fails, we still want to save the data
+        // to avoid overwriting existing values with null
+        
+        // Show loading indicator
+        setState(() => _isSaving = true);
+        
+        // Collect form data - only include non-empty values
+        Map<String, dynamic> dataToSave = {};
+        
+        // Pregnancy information
+        if (_pregnancyMonthController.text.isNotEmpty) {
+          dataToSave['pregnancyMonth'] = int.parse(_pregnancyMonthController.text);
+        }
+        if (_dueDateController.text.isNotEmpty) {
+          dataToSave['dueDate'] = _dueDateController.text;
+        }
+        
+        // Vital signs
+        if (_weightController.text.isNotEmpty) {
+          dataToSave['weight'] = _weightController.text;
+        }
+        if (_heightController.text.isNotEmpty) {
+          dataToSave['height'] = _heightController.text;
+        }
+        if (_systolicController.text.isNotEmpty) {
+          dataToSave['systolicBP'] = _systolicController.text;
+        }
+        if (_diastolicController.text.isNotEmpty) {
+          dataToSave['diastolicBP'] = _diastolicController.text;
+        }
+        if (_temperatureController.text.isNotEmpty) {
+          dataToSave['temperature'] = _temperatureController.text;
+        }
+        
+        // Lab values
+        if (_hemoglobinController.text.isNotEmpty) {
+          dataToSave['hemoglobin'] = _hemoglobinController.text;
+        }
+        if (_glucoseController.text.isNotEmpty) {
+          dataToSave['glucose'] = _glucoseController.text;
+        }
+        
+        // Symptoms and lifestyle
+        if (_symptomsController.text.isNotEmpty) {
+          dataToSave['symptoms'] = _symptomsController.text;
+        }
+        if (_dietaryLogController.text.isNotEmpty) {
+          dataToSave['dietaryLog'] = _dietaryLogController.text;
+        }
+        if (_physicalActivityController.text.isNotEmpty) {
+          dataToSave['physicalActivity'] = _physicalActivityController.text;
+        }
+        if (_supplementsController.text.isNotEmpty) {
+          dataToSave['supplements'] = _supplementsController.text;
+        }
+        
+        // Mental health
+        if (_moodRating != null) {
+          dataToSave['moodRating'] = _moodRating!.toDouble();
+          print('Saving mood rating: ${_moodRating!}');
+        }
+        
+        if (_hasAnxiety != null) {
+          dataToSave['hasAnxiety'] = _hasAnxiety!;
+        }
+        if (_anxietyLevel != null) {
+          dataToSave['anxietyLevel'] = _anxietyLevel!.toDouble();
+        }
+        
+        print('Saving data with fields: ${dataToSave.keys.join(', ')}');
+        
+        // Save to database
+        final result = await _dbService.saveHealthData(
+          pregnancyMonth: dataToSave['pregnancyMonth'],
+          dueDate: dataToSave['dueDate'],
+          weight: dataToSave['weight'],
+          height: dataToSave['height'],
+          systolicBP: dataToSave['systolicBP'],
+          diastolicBP: dataToSave['diastolicBP'],
+          temperature: dataToSave['temperature'],
+          hemoglobin: dataToSave['hemoglobin'],
+          glucose: dataToSave['glucose'],
+          symptoms: dataToSave['symptoms'],
+          dietaryLog: dataToSave['dietaryLog'],
+          physicalActivity: dataToSave['physicalActivity'],
+          supplements: dataToSave['supplements'],
+          moodRating: dataToSave['moodRating'],
+          hasAnxiety: dataToSave['hasAnxiety'],
+          anxietyLevel: dataToSave['anxietyLevel'],
+        );
+        
+        // Hide loading indicator
+        setState(() => _isSaving = false);
+        
+        print('Data saved successfully with ID: $result');
+        
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Health data saved successfully'),
+            duration: Duration(seconds: 2),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        // Return true to indicate successful save
+        Navigator.pop(context, true);
+      } catch (e) {
+        // Hide loading indicator
+        setState(() => _isSaving = false);
+        
+        print('Error saving health data: $e');
+        
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving data: $e'),
+            duration: const Duration(seconds: 4),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 } 
