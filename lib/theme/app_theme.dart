@@ -37,7 +37,7 @@ class AppTheme {
       primaryColor: primaryColor,
       scaffoldBackgroundColor: backgroundColor,
       cardColor: cardColor,
-      colorScheme: ColorScheme.light(
+      colorScheme: const ColorScheme.light(
         primary: primaryColor,
         secondary: secondaryColor,
         error: errorColor,
@@ -53,17 +53,17 @@ class AppTheme {
         bodyMedium: TextStyle(color: secondaryTextColor, fontSize: 14),
         labelLarge: TextStyle(color: primaryColor, fontWeight: FontWeight.w600, fontSize: 16),
       ),
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         backgroundColor: cardColor,
         foregroundColor: primaryTextColor,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: const TextStyle(
+        titleTextStyle: TextStyle(
           color: primaryTextColor,
           fontWeight: FontWeight.bold,
           fontSize: 20,
         ),
-        iconTheme: const IconThemeData(
+        iconTheme: IconThemeData(
           color: primaryColor,
         ),
       ),
@@ -120,11 +120,11 @@ class AppTheme {
         labelStyle: const TextStyle(color: secondaryTextColor),
         hintStyle: TextStyle(color: secondaryTextColor.withOpacity(0.7)),
       ),
-      tabBarTheme: TabBarTheme(
+      tabBarTheme: const TabBarTheme(
         labelColor: primaryColor,
         unselectedLabelColor: secondaryTextColor,
         indicatorSize: TabBarIndicatorSize.tab,
-        labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+        labelStyle: TextStyle(fontWeight: FontWeight.bold),
         indicator: BoxDecoration(
           border: Border(
             bottom: BorderSide(
@@ -134,7 +134,7 @@ class AppTheme {
           ),
         ),
       ),
-      dividerTheme: DividerThemeData(
+      dividerTheme: const DividerThemeData(
         color: borderColor,
         thickness: 1,
         space: 24,
@@ -150,7 +150,7 @@ class AppTheme {
         brightness: Brightness.light,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: borderColor),
+          side: const BorderSide(color: borderColor),
         ),
       ),
       sliderTheme: SliderThemeData(

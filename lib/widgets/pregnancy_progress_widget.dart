@@ -77,7 +77,7 @@ class PregnancyProgressWidget extends StatelessWidget {
                           ),
                           TextSpan(
                             text: '• Due in $remainingDays days',
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: AppTheme.secondaryTextColor,
                             ),
                           ),
@@ -99,7 +99,7 @@ class PregnancyProgressWidget extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.child_friendly_outlined,
                     color: AppTheme.primaryColor,
                     size: 28,
@@ -174,7 +174,7 @@ class PregnancyProgressWidget extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Row(
+                const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
@@ -257,7 +257,7 @@ class PregnancyProgressWidget extends StatelessWidget {
                       if (milestone.completedDate != null)
                         Text(
                           _formatDate(milestone.completedDate!),
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 12,
                             color: AppTheme.secondaryTextColor,
                           ),

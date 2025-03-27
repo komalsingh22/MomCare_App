@@ -25,7 +25,7 @@ class DateUtils {
   }
 
   static String getRemainingMonths(int currentMonth) {
-    final totalMonths = 9;
+    const totalMonths = 9;
     final remaining = totalMonths - currentMonth;
     return '$remaining ${remaining == 1 ? 'month' : 'months'} remaining';
   }

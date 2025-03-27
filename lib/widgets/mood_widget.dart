@@ -71,10 +71,10 @@ class MoodWidget extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
+          gradient: const LinearGradient(
             colors: [
-              const Color(0xFFF8F2FF),
-              const Color(0xFFFFFAFF),
+              Color(0xFFF8F2FF),
+              Color(0xFFFFFAFF),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -136,7 +136,7 @@ class MoodWidget extends StatelessWidget {
                     color: AppTheme.secondaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Row(
+                  child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
@@ -144,7 +144,7 @@ class MoodWidget extends StatelessWidget {
                         size: 12,
                         color: AppTheme.secondaryColor,
                       ),
-                      const SizedBox(width: 4),
+                      SizedBox(width: 4),
                       Text(
                         'Updated',
                         style: TextStyle(
@@ -231,7 +231,7 @@ class MoodWidget extends StatelessWidget {
                       ),
                       Text(
                         '${moodHistory.length} day trend',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           color: AppTheme.secondaryTextColor,
                         ),
@@ -267,7 +267,7 @@ class MoodWidget extends StatelessWidget {
     final List<String> moodLabels = ['Very Low', 'Low', 'Neutral', 'Good', 'Excellent'];
     
     if (moodHistory.isEmpty) {
-      return Center(
+      return const Center(
         child: Text(
           'No mood history available',
           style: TextStyle(
@@ -321,17 +321,17 @@ class MoodWidget extends StatelessWidget {
               },
             ),
           ),
-          leftTitles: AxisTitles(
+          leftTitles: const AxisTitles(
             sideTitles: SideTitles(
               showTitles: false,
             ),
           ),
-          topTitles: AxisTitles(
+          topTitles: const AxisTitles(
             sideTitles: SideTitles(
               showTitles: false,
             ),
           ),
-          rightTitles: AxisTitles(
+          rightTitles: const AxisTitles(
             sideTitles: SideTitles(
               showTitles: false,
             ),

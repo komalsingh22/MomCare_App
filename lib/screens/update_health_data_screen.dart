@@ -121,7 +121,7 @@ class _UpdateHealthDataScreenState extends State<UpdateHealthDataScreen> with Si
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60),
           child: Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               border: Border(
                 bottom: BorderSide(
                   color: AppTheme.borderColor,
@@ -131,14 +131,14 @@ class _UpdateHealthDataScreenState extends State<UpdateHealthDataScreen> with Si
             ),
             child: TabBar(
               controller: _tabController,
-              tabs: [
+              tabs: const [
                 Tab(
-                  icon: const Icon(Icons.edit_note_rounded),
-                  child: const Text('Manual Entry'),
+                  icon: Icon(Icons.edit_note_rounded),
+                  child: Text('Manual Entry'),
                 ),
                 Tab(
-                  icon: const Icon(Icons.upload_file_rounded),
-                  child: const Text('Upload Report'),
+                  icon: Icon(Icons.upload_file_rounded),
+                  child: Text('Upload Report'),
                 ),
               ],
               labelColor: AppTheme.primaryColor,
@@ -439,14 +439,14 @@ class _UpdateHealthDataScreenState extends State<UpdateHealthDataScreen> with Si
             ),
             const SizedBox(height: 8),
             
-            Row(
+            const Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Icon(Icons.sentiment_very_dissatisfied, color: Colors.red),
-                const Icon(Icons.sentiment_dissatisfied, color: Colors.orange),
-                const Icon(Icons.sentiment_neutral, color: Colors.amber),
-                const Icon(Icons.sentiment_satisfied, color: Colors.lightGreen),
-                const Icon(Icons.sentiment_very_satisfied, color: Colors.green),
+                Icon(Icons.sentiment_very_dissatisfied, color: Colors.red),
+                Icon(Icons.sentiment_dissatisfied, color: Colors.orange),
+                Icon(Icons.sentiment_neutral, color: Colors.amber),
+                Icon(Icons.sentiment_satisfied, color: Colors.lightGreen),
+                Icon(Icons.sentiment_very_satisfied, color: Colors.green),
               ],
             ),
             
@@ -734,18 +734,12 @@ class _UpdateHealthDataScreenState extends State<UpdateHealthDataScreen> with Si
         }
         
         // Mental health
-        if (_moodRating != null) {
-          dataToSave['moodRating'] = _moodRating!.toDouble();
-          print('Saving mood rating: ${_moodRating!}');
-        }
-        
-        if (_hasAnxiety != null) {
-          dataToSave['hasAnxiety'] = _hasAnxiety!;
-        }
-        if (_anxietyLevel != null) {
-          dataToSave['anxietyLevel'] = _anxietyLevel!.toDouble();
-        }
-        
+        dataToSave['moodRating'] = _moodRating.toDouble();
+        print('Saving mood rating: $_moodRating');
+              
+        dataToSave['hasAnxiety'] = _hasAnxiety;
+              dataToSave['anxietyLevel'] = _anxietyLevel.toDouble();
+              
         print('Saving data with fields: ${dataToSave.keys.join(', ')}');
         
         // Save to database

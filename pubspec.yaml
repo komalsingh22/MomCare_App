@@ -9,10 +9,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.8
+  cupertino_icons: ^1.0.2
   sqflite: ^2.3.0
   path: ^1.8.3
-  google_generative_ai: ^0.4.0
+  fl_chart: ^0.64.0
+  google_generative_ai: ^0.2.3
   intl: ^0.18.0
   shared_preferences: ^2.2.2
   connectivity_plus: ^5.0.2
@@ -29,7 +30,6 @@ dependencies:
   flutter_launcher_icons: ^0.13.1
   flutter_secure_storage: ^9.0.0
   flutter_offline: ^3.0.1
-  fl_chart: ^0.65.0
 
 dev_dependencies:
   flutter_test:

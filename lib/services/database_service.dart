@@ -38,50 +38,43 @@ class DatabaseService {
   }
 
   Future<void> _createTables(Database db, int version) async {
-    // Create a comprehensive health_data table with all form fields
+    // Health data table
     await db.execute('''
-      CREATE TABLE health_data(
+      CREATE TABLE IF NOT EXISTS health_data (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp TEXT NOT NULL,
-        
-        -- Pregnancy Information
         pregnancy_month INTEGER,
         due_date TEXT,
-        
-        -- Vital Signs
         weight TEXT,
         height TEXT,
         systolic_bp TEXT,
         diastolic_bp TEXT,
         temperature TEXT,
-        
-        -- Lab Values
         hemoglobin TEXT,
         glucose TEXT,
-        
-        -- Symptoms and Lifestyle
         symptoms TEXT,
         dietary_log TEXT,
         physical_activity TEXT,
         supplements TEXT,
-        
-        -- Mental Health
-        mood_rating REAL,
+        mood_rating INTEGER,
         has_anxiety INTEGER,
         anxiety_level REAL
       )
     ''');
-
-    // Keep the health alerts table
+    
+    // Health alerts table
     await db.execute('''
-      CREATE TABLE health_alerts(
+      CREATE TABLE IF NOT EXISTS health_alerts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
         message TEXT NOT NULL,
-        severity TEXT NOT NULL,
-        last_updated TEXT NOT NULL
+        severity INTEGER NOT NULL,
+        timestamp TEXT NOT NULL,
+        is_read INTEGER DEFAULT 0
       )
     ''');
+    
+    print('Database tables created successfully');
   }
 
   // Save health data from form
@@ -153,20 +146,25 @@ class DatabaseService {
     }
   }
 
-  // Get latest health data
+  // Get the latest health data entry
   Future<Map<String, dynamic>?> getLatestHealthData() async {
-    final db = await database;
-    final List<Map<String, dynamic>> results = await db.query(
-      'health_data',
-      orderBy: 'timestamp DESC',
-      limit: 1,
-    );
-    
-    if (results.isNotEmpty) {
+    try {
+      final db = await database;
+      final List<Map<String, dynamic>> results = await db.query(
+        'health_data',
+        orderBy: 'timestamp DESC',
+        limit: 1,
+      );
+      
+      if (results.isEmpty) {
+        return null;
+      }
+      
       return results.first;
+    } catch (e) {
+      print('Error getting latest health data: $e');
+      return null;
     }
-    
-    return null;
   }
 
   // Get latest value for a specific health parameter
@@ -189,38 +187,93 @@ class DatabaseService {
 
   // Get all health data entries
   Future<List<Map<String, dynamic>>> getAllHealthData() async {
-    final db = await database;
-    return await db.query('health_data', orderBy: 'timestamp DESC');
-  }
-
-  // Health Alerts CRUD operations
-  Future<void> saveHealthAlert(HealthAlert alert) async {
-    final db = await database;
-    await db.insert(
-      'health_alerts',
-      {
-        'title': alert.title,
-        'message': alert.message,
-        'severity': alert.severity.toString(),
-        'last_updated': alert.lastUpdated.toIso8601String(),
-      },
-    );
-  }
-
-  Future<List<HealthAlert>> getHealthAlerts() async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('health_alerts');
-    return List.generate(maps.length, (i) {
-      return HealthAlert(
-        id: maps[i]['id'].toString(),
-        title: maps[i]['title'],
-        message: maps[i]['message'],
-        severity: AlertSeverity.values.firstWhere(
-          (e) => e.toString() == maps[i]['severity'],
-        ),
-        lastUpdated: DateTime.parse(maps[i]['last_updated']),
+    try {
+      final db = await database;
+      final List<Map<String, dynamic>> results = await db.query(
+        'health_data',
+        orderBy: 'timestamp DESC',
       );
-    });
+      
+      print('Found ${results.length} health data entries');
+      return results;
+    } catch (e) {
+      print('Error getting all health data: $e');
+      return [];
+    }
+  }
+
+  // Save a health alert to the database
+  Future<int> saveHealthAlert(HealthAlert alert) async {
+    try {
+      final db = await database;
+      
+      // First check if this alert already exists (to avoid duplicates)
+      final List<Map<String, dynamic>> existingAlerts = await db.query(
+        'health_alerts',
+        where: 'title = ?',
+        whereArgs: [alert.title],
+        orderBy: 'timestamp DESC',
+        limit: 1,
+      );
+      
+      // If a similar alert exists and is less than 24 hours old, don't create a new one
+      if (existingAlerts.isNotEmpty) {
+        final existingAlert = existingAlerts.first;
+        final existingTimestamp = DateTime.parse(existingAlert['timestamp']);
+        final timeDifference = DateTime.now().difference(existingTimestamp).inHours;
+        
+        if (timeDifference < 24) {
+          print('Similar alert already exists and is less than 24 hours old. Skipping.');
+          return existingAlert['id'];
+        }
+      }
+      
+      // Insert the new alert
+      return await db.insert(
+        'health_alerts',
+        {
+          'title': alert.title,
+          'message': alert.message,
+          'severity': alert.severity.index,
+          'timestamp': DateTime.now().toIso8601String(),
+          'is_read': 0,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (e) {
+      print('Error saving health alert: $e');
+      return -1;
+    }
+  }
+
+  // Get all health alerts
+  Future<List<HealthAlert>> getHealthAlerts() async {
+    try {
+      final db = await database;
+      final List<Map<String, dynamic>> results = await db.query(
+        'health_alerts',
+        orderBy: 'timestamp DESC',
+        limit: 10, // Limit to most recent alerts
+      );
+      
+      print('Found ${results.length} health alerts');
+      
+      List<HealthAlert> alerts = [];
+      for (var alertData in results) {
+        alerts.add(HealthAlert(
+          id: alertData['id'].toString(),
+          title: alertData['title'],
+          message: alertData['message'],
+          severity: AlertSeverity.values[alertData['severity']],
+          lastUpdated: DateTime.parse(alertData['timestamp']),
+        ));
+      }
+      
+      return alerts;
+    } catch (e) {
+      print('Error getting health alerts: $e');
+      return [];
+    }
   }
 
   // Convert database entries to VitalSign objects for the dashboard
@@ -585,6 +638,62 @@ class DatabaseService {
     } catch (e) {
       print('Error getting pregnancy data: $e');
       return null;
+    }
+  }
+
+  // Method to get history data for weight measurements
+  Future<List<Map<String, dynamic>>> getWeightHistory() async {
+    return await _getHistoryForField('weight');
+  }
+  
+  // Generic method to get history data for any field
+  Future<List<Map<String, dynamic>>> getHistoryForField(String fieldName) async {
+    return await _getHistoryForField(fieldName);
+  }
+
+  // Get all health alerts (without limit)
+  Future<List<HealthAlert>> getAllHealthAlerts() async {
+    try {
+      final db = await database;
+      final List<Map<String, dynamic>> results = await db.query(
+        'health_alerts',
+        orderBy: 'timestamp DESC',
+      );
+      
+      print('Found ${results.length} total health alerts');
+      
+      List<HealthAlert> alerts = [];
+      for (var alertData in results) {
+        alerts.add(HealthAlert(
+          id: alertData['id'].toString(),
+          title: alertData['title'],
+          message: alertData['message'],
+          severity: AlertSeverity.values[alertData['severity']],
+          lastUpdated: DateTime.parse(alertData['timestamp']),
+        ));
+      }
+      
+      return alerts;
+    } catch (e) {
+      print('Error getting all health alerts: $e');
+      return [];
+    }
+  }
+  
+  // Mark a health alert as read
+  Future<void> markHealthAlertAsRead(String alertId) async {
+    try {
+      final db = await database;
+      await db.update(
+        'health_alerts',
+        {'is_read': 1},
+        where: 'id = ?',
+        whereArgs: [alertId],
+      );
+      print('Marked health alert $alertId as read');
+    } catch (e) {
+      print('Error marking health alert as read: $e');
+      rethrow;
     }
   }
 } 

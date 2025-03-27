@@ -173,7 +173,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                   Container(
                     width: 8,
                     height: 8,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: AppTheme.primaryColor,
                       shape: BoxShape.circle,
                     ),
@@ -198,7 +198,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppTheme.backgroundColor,
               shape: BoxShape.circle,
             ),

@@ -65,7 +65,7 @@ class HealthReportWidget extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         _formatDate(report.lastUpdated),
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           color: AppTheme.secondaryTextColor,
                         ),
@@ -90,7 +90,7 @@ class HealthReportWidget extends StatelessWidget {
                 ),
                 
                 // Arrow icon
-                Icon(
+                const Icon(
                   Icons.arrow_forward_ios,
                   color: AppTheme.secondaryTextColor,
                   size: 16,
@@ -114,7 +114,7 @@ class HealthReportWidget extends StatelessWidget {
         children: [
           Text(
             entry.key,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
               color: AppTheme.secondaryTextColor,

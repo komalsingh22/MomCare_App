@@ -3,6 +3,7 @@ import 'package:health_app/screens/chatbot_screen.dart';
 import 'package:health_app/screens/health_dashboard_screen.dart';
 import 'package:health_app/screens/reminders_screen.dart';
 import 'package:health_app/screens/resources_screen.dart';
+import 'package:health_app/screens/api_key_setup_screen.dart';
 import 'package:health_app/theme/app_theme.dart';
 
 void main() {
@@ -19,18 +20,22 @@ class HealthApp extends StatelessWidget {
       theme: ThemeData(
         primaryColor: AppTheme.primaryColor,
         scaffoldBackgroundColor: AppTheme.backgroundColor,
-        appBarTheme: AppBarTheme(
+        appBarTheme: const AppBarTheme(
           backgroundColor: Colors.white,
           foregroundColor: AppTheme.primaryTextColor,
           centerTitle: true,
           elevation: 0,
         ),
         fontFamily: 'Poppins',
-        textTheme: TextTheme(
+        textTheme: const TextTheme(
           bodyMedium: TextStyle(color: AppTheme.primaryTextColor),
         ),
       ),
-      home: const HomeScreen(),
+      routes: {
+        '/': (context) => const HomeScreen(),
+        '/api_key_setup': (context) => const ApiKeySetupScreen(),
+      },
+      initialRoute: '/',
       debugShowCheckedModeBanner: false,
     );
   }

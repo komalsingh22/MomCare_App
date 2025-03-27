@@ -222,7 +222,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> with SingleTickerProv
               ),
               TextButton(
                 onPressed: () {},
-                child: Text(
+                child: const Text(
                   'See All',
                   style: TextStyle(
                     color: AppTheme.primaryColor,
@@ -395,7 +395,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> with SingleTickerProv
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.source,
                         size: 14,
                         color: AppTheme.secondaryTextColor,
@@ -403,13 +403,13 @@ class _ResourcesScreenState extends State<ResourcesScreen> with SingleTickerProv
                       const SizedBox(width: 4),
                       Text(
                         article.source,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           color: AppTheme.secondaryTextColor,
                         ),
                       ),
                       const SizedBox(width: 16),
-                      Icon(
+                      const Icon(
                         Icons.calendar_today,
                         size: 14,
                         color: AppTheme.secondaryTextColor,
@@ -417,7 +417,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> with SingleTickerProv
                       const SizedBox(width: 4),
                       Text(
                         _formatDate(article.publishDate),
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           color: AppTheme.secondaryTextColor,
                         ),
@@ -653,7 +653,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> with SingleTickerProv
                         const SizedBox(height: 4),
                         Text(
                           contact.role,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 14,
                             color: AppTheme.secondaryTextColor,
                           ),
@@ -749,7 +749,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> with SingleTickerProv
           const SizedBox(height: 6),
           Text(
             label,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 12,
               color: AppTheme.secondaryTextColor,
               fontWeight: FontWeight.w500,

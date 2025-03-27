@@ -1,198 +1,227 @@
 import 'package:flutter/material.dart';
 import 'package:health_app/models/health_data.dart';
+import 'package:health_app/screens/health_education_screen.dart';
 import 'package:health_app/theme/app_theme.dart';
 
 class HealthAlertWidget extends StatelessWidget {
-  final List<HealthAlert> alerts;
-  final VoidCallback onTap;
+  final HealthAlert alert;
+  final Function? onDismiss;
 
   const HealthAlertWidget({
     super.key,
-    required this.alerts,
-    required this.onTap,
+    required this.alert,
+    this.onDismiss,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (alerts.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFFFFF0F0),
-            const Color(0xFFFFF9F9),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.red.shade200.withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade400,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.notifications_active,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Health Alerts',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade400,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${alerts.length}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                ...alerts.map((alert) => _buildAlertItem(context, alert)),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAlertItem(BuildContext context, HealthAlert alert) {
+    // Determine color based on severity
     Color severityColor;
     IconData severityIcon;
     
     switch (alert.severity) {
       case AlertSeverity.high:
-        severityColor = Colors.red.shade400;
-        severityIcon = Icons.error_outline;
+        severityColor = Colors.red;
+        severityIcon = Icons.warning_rounded;
         break;
       case AlertSeverity.medium:
-        severityColor = Colors.amber.shade600;
-        severityIcon = Icons.warning_amber_outlined;
+        severityColor = Colors.orange;
+        severityIcon = Icons.warning_amber_rounded;
         break;
-      case AlertSeverity.low:
       default:
-        severityColor = Colors.orange.shade300;
+        severityColor = Colors.blue;
         severityIcon = Icons.info_outline;
         break;
     }
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.only(bottom: 12.0),
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: severityColor.withOpacity(0.3),
+        side: BorderSide(
+          color: severityColor.withOpacity(0.5),
           width: 1,
         ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            severityIcon,
-            color: severityColor,
-            size: 24,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  alert.title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
+      child: InkWell(
+        onTap: () {
+          _showAlertDialog(context);
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    severityIcon,
+                    color: severityColor,
+                    size: 24,
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  alert.message,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppTheme.secondaryTextColor,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.access_time,
-                      size: 12,
-                      color: AppTheme.secondaryTextColor,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      _formatLastUpdated(alert.lastUpdated),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.secondaryTextColor,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      alert.title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                  if (onDismiss != null)
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 20),
+                      onPressed: () {
+                        if (onDismiss != null) {
+                          onDismiss!();
+                        }
+                      },
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _getShortMessage(alert.message),
+                style: Theme.of(context).textTheme.bodyMedium,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _formatDate(alert.lastUpdated),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey,
+                    ),
+                  ),
+                  Text(
+                    'Tap for details',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.accentColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
   
-  String _formatLastUpdated(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
+  void _showAlertDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              _getSeverityIcon(),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  alert.title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(alert.message),
+                const SizedBox(height: 16),
+                Text(
+                  'Detected on: ${_formatDate(alert.lastUpdated)}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('CLOSE'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                // Navigate to the educational screen
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => HealthEducationScreen(
+                      condition: alert.title,
+                    ),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('LEARN MORE'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+  
+  Widget _getSeverityIcon() {
+    IconData iconData;
+    Color iconColor;
     
-    if (difference.inDays > 0) {
-      return '${difference.inDays} ${difference.inDays == 1 ? 'day' : 'days'} ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} ${difference.inHours == 1 ? 'hour' : 'hours'} ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} ${difference.inMinutes == 1 ? 'minute' : 'minutes'} ago';
-    } else {
-      return 'Just now';
+    switch (alert.severity) {
+      case AlertSeverity.high:
+        iconData = Icons.warning_rounded;
+        iconColor = Colors.red;
+        break;
+      case AlertSeverity.medium:
+        iconData = Icons.warning_amber_rounded;
+        iconColor = Colors.orange;
+        break;
+      default:
+        iconData = Icons.info_outline;
+        iconColor = Colors.blue;
+        break;
     }
+    
+    return Icon(
+      iconData,
+      color: iconColor,
+    );
+  }
+  
+  String _getShortMessage(String message) {
+    // Remove markdown formatting for cleaner preview
+    String cleanMessage = message.replaceAll(RegExp(r'\*\*|\*|`|#'), '');
+    
+    // If the message contains recommendations, only show the first part
+    if (cleanMessage.contains('Recommendations:')) {
+      return cleanMessage.split('Recommendations:')[0].trim();
+    }
+    
+    return cleanMessage;
+  }
+  
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
   }
 } 

@@ -3,7 +3,7 @@ import 'package:health_app/models/health_data.dart';
 import 'package:health_app/screens/update_health_data_screen.dart';
 import 'package:health_app/theme/app_theme.dart';
 import 'package:health_app/utils/connectivity_helper.dart';
-import 'package:health_app/widgets/health_alert_widget.dart';
+import 'package:health_app/widgets/health_alerts_list.dart';
 import 'package:health_app/widgets/offline_indicator.dart';
 import 'package:health_app/widgets/health_report_widget.dart';
 import 'package:health_app/widgets/mood_widget.dart';
@@ -11,12 +11,9 @@ import 'package:health_app/widgets/pregnancy_progress_widget.dart';
 import 'package:health_app/utils/date_utils.dart' as app_date_utils;
 import 'package:health_app/services/database_service.dart';
 import 'package:health_app/services/ai_service.dart';
+import 'package:health_app/screens/all_health_alerts_screen.dart';
 import 'package:fl_chart/fl_chart.dart';
-// import 'package:health_app/models/vital_sign.dart';
-// import 'package:health_app/models/health_alert.dart';
-// import 'package:health_app/widgets/vital_sign_widget.dart';
-// import 'package:health_app/widgets/pregnancy_widget.dart';
-// import '../models/mood_data.dart' as mood_models;
+
 
 class HealthDashboardScreen extends StatefulWidget {
   const HealthDashboardScreen({super.key});
@@ -77,9 +74,21 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
       final vitalSigns = await _databaseService.getVitalSigns();
       print('Loaded ${vitalSigns.length} vital signs');
       
-      // Get health alerts
-      final alerts = await _databaseService.getHealthAlerts();
-      print('Loaded ${alerts.length} health alerts');
+      // Get latest health data for AI analysis
+      final latestHealthData = await _databaseService.getLatestHealthData();
+      
+      // Run AI analysis on the data
+      final aiAlerts = await _aiService.analyzeHealthData(latestHealthData ?? {});
+      print('AI analysis generated ${aiAlerts.length} health alerts');
+      
+      // Get health alerts (combining existing alerts with AI-generated ones)
+      final dbAlerts = await _databaseService.getHealthAlerts();
+      final allAlerts = [...dbAlerts, ...aiAlerts];
+      
+      // Save AI-generated alerts to database
+      for (var alert in aiAlerts) {
+        await _databaseService.saveHealthAlert(alert);
+      }
       
       // Load mood data using the new method
       final moodData = await _databaseService.getMoodData();
@@ -90,7 +99,8 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
       
       setState(() {
         _vitalSigns = vitalSigns;
-        _healthAlerts = alerts;
+        _healthAlerts = allAlerts;
+        _latestHealthData = latestHealthData;
         
         // Update pregnancy data if available
         if (pregnancyData != null && 
@@ -333,9 +343,15 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                               ),
                             ),
                             
-                            HealthAlertWidget(
+                            HealthAlertsList(
                               alerts: _healthAlerts,
-                              onTap: () {},
+                              onDismiss: _dismissAlert,
+                              onSeeAll: () => Navigator.push(
+                                context, 
+                                MaterialPageRoute(
+                                  builder: (context) => const AllHealthAlertsScreen(),
+                                ),
+                              ),
                             ),
                             const SizedBox(height: 24),
                           ],
@@ -446,50 +462,95 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
             ],
           ),
           
-          Stack(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(3),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.secondaryColor,
-                      blurRadius: 8,
-                      offset: Offset(0, 2),
+          // Profile icon with popup menu
+          PopupMenuButton(
+            offset: const Offset(0, 40),
+            icon: Stack(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.secondaryColor,
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const CircleAvatar(
+                    backgroundColor: AppTheme.secondaryColor,
+                    radius: 20,
+                    child: Icon(
+                      Icons.person_outline,
+                      color: Colors.white,
                     ),
+                  ),
+                ),
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: AppTheme.accentColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Text(
+                      '1',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'profile',
+                child: Row(
+                  children: [
+                    Icon(Icons.person_outline),
+                    SizedBox(width: 8),
+                    Text('Profile'),
                   ],
                 ),
-                child: const CircleAvatar(
-                  backgroundColor: AppTheme.secondaryColor,
-                  radius: 20,
-                  child: Icon(
-                    Icons.person_outline,
-                    color: Colors.white,
-                  ),
+              ),
+              const PopupMenuItem(
+                value: 'api_key',
+                child: Row(
+                  children: [
+                    Icon(Icons.smart_toy_outlined),
+                    SizedBox(width: 8),
+                    Text('AI Features Setup'),
+                  ],
                 ),
               ),
-              Positioned(
-                top: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: AppTheme.accentColor,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Text(
-                    '1',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+              const PopupMenuItem(
+                value: 'settings',
+                child: Row(
+                  children: [
+                    Icon(Icons.settings_outlined),
+                    SizedBox(width: 8),
+                    Text('Settings'),
+                  ],
                 ),
               ),
             ],
+            onSelected: (value) {
+              if (value == 'api_key') {
+                Navigator.pushNamed(context, '/api_key_setup');
+              } else if (value == 'profile') {
+                // TODO: Navigate to profile
+              } else if (value == 'settings') {
+                // TODO: Navigate to settings
+              }
+            },
           ),
         ],
       ),
@@ -703,5 +764,26 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
       icon: const Icon(Icons.edit_outlined),
       backgroundColor: AppTheme.accentColor,
     );
+  }
+
+  Future<void> _dismissAlert(HealthAlert alert) async {
+    try {
+      await _databaseService.markHealthAlertAsRead(alert.id);
+      setState(() {
+        _healthAlerts.removeWhere((a) => a.id == alert.id);
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Alert dismissed'),
+          action: SnackBarAction(
+            label: 'UNDO',
+            onPressed: _loadData,
+          ),
+        ),
+      );
+    } catch (e) {
+      print('Error dismissing health alert: $e');
+    }
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -85,7 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildMainContent() {
     return Container(
       color: Colors.white,
-      child: Center(
+      child: const Center(
         child: Text(
           'Home Screen Content',
           style: TextStyle(fontSize: 24),
