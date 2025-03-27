@@ -51,7 +51,7 @@ class AIService {
       ''';
 
       // Get AI response
-      final generatedContent = await _model!.generateContent([Content.text(prompt)]);
+      final generatedContent = await _model.generateContent([Content.text(prompt)]);
       final analysis = generatedContent.text;
 
       // Parse AI response to determine if there's a health alert

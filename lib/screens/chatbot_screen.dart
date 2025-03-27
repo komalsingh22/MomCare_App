@@ -79,7 +79,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                   Container(
                     height: 30,
                     width: 30,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       gradient: AppTheme.primaryGradient,
                       shape: BoxShape.circle,
                     ),
@@ -279,7 +279,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               height: 36,
               width: 36,
               margin: const EdgeInsets.only(right: 8),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: AppTheme.primaryGradient,
                 shape: BoxShape.circle,
               ),

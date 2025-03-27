@@ -168,7 +168,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
             : RefreshIndicator(
                 onRefresh: _loadData,
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(20, 16, 20, 100),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
                   child: Column(
                     children: [
                       // Offline indicator
@@ -389,12 +389,12 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
         boxShadow: [
           BoxShadow(
             color: AppTheme.primaryColor,
-            offset: const Offset(0, 2),
+            offset: Offset(0, 2),
             blurRadius: 8,
           ),
         ],
@@ -450,21 +450,21 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
                       color: AppTheme.secondaryColor,
                       blurRadius: 8,
-                      offset: const Offset(0, 2),
+                      offset: Offset(0, 2),
                     ),
                   ],
                 ),
-                child: CircleAvatar(
+                child: const CircleAvatar(
                   backgroundColor: AppTheme.secondaryColor,
                   radius: 20,
-                  child: const Icon(
+                  child: Icon(
                     Icons.person_outline,
                     color: Colors.white,
                   ),
@@ -504,7 +504,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        gradient: gradient ?? LinearGradient(
+        gradient: gradient ?? const LinearGradient(
           colors: [Colors.white, Colors.white],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -648,8 +648,8 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
 
     return LineChart(
       LineChartData(
-        gridData: FlGridData(show: false),
-        titlesData: FlTitlesData(show: false),
+        gridData: const FlGridData(show: false),
+        titlesData: const FlTitlesData(show: false),
         borderData: FlBorderData(show: false),
         lineBarsData: [
           LineChartBarData(
@@ -658,7 +658,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
             color: color,
             barWidth: 2,
             isStrokeCapRound: true,
-            dotData: FlDotData(show: false),
+            dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
               color: color.withOpacity(0.2),
@@ -678,7 +678,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
             ),
           ),
         ],
-        lineTouchData: LineTouchData(enabled: false),
+        lineTouchData: const LineTouchData(enabled: false),
         backgroundColor: Colors.transparent,
       ),
     );
