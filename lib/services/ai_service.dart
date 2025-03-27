@@ -129,7 +129,7 @@ class AIService {
       
       _model = GenerativeModel(
         model: 'gemini-2.0-flash', // Free tier model
-        apiKey: storedApiKey,
+        apiKey: aimodelapiKey,
         // Configure parameters to limit token usage
         generationConfig: GenerationConfig(
           temperature: 0.4,
