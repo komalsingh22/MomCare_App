@@ -1,1 +1,0 @@
-const String aimodelapiKey = "AIzaSyAAMHgpiT5VROoCGjOJ1wjt8Bb77tL2-9A";
