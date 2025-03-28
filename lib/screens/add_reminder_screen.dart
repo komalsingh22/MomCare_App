@@ -21,7 +21,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Add New Reminder'),
+        title: const Text('Add New Reminder'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -30,7 +30,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
           child: Column(
             children: [
               TextFormField(
-                decoration: InputDecoration(labelText: 'Title'),
+                decoration: const InputDecoration(labelText: 'Title'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter a title';

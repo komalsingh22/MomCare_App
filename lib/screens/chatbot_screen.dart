@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:health_app/theme/app_theme.dart';
+import 'package:health_app/services/ai_service.dart';
 
 class ChatbotScreen extends StatefulWidget {
   const ChatbotScreen({super.key});
@@ -11,7 +12,9 @@ class ChatbotScreen extends StatefulWidget {
 class _ChatbotScreenState extends State<ChatbotScreen> {
   final TextEditingController _messageController = TextEditingController();
   final List<ChatMessage> _messages = [];
+  final AIService _aiService = AIService();
   bool _isTyping = false;
+  List<String> _conversationContext = [];
 
   @override
   void dispose() {
@@ -19,31 +22,45 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     super.dispose();
   }
 
-  void _sendMessage() {
+  Future<void> _sendMessage() async {
     if (_messageController.text.trim().isEmpty) return;
 
+    final String userMessage = _messageController.text;
     setState(() {
       _messages.add(ChatMessage(
-        text: _messageController.text,
+        text: userMessage,
         isUser: true,
       ));
       _isTyping = true;
     });
 
-    // Store the message and clear the input field
-    final String message = _messageController.text;
     _messageController.clear();
 
-    // Simulate AI response after a delay
-    Future.delayed(const Duration(seconds: 1), () {
+    try {
+      // Add user message to context
+      _conversationContext.add('User: $userMessage');
+      
+      // Get AI response
+      final response = await _aiService.chat(userMessage, context: _conversationContext);
+      
       setState(() {
         _isTyping = false;
         _messages.add(ChatMessage(
-          text: "Thanks for your message! I'm your EmpowerHer maternal health assistant. I'm here to answer your questions about pregnancy, maternal health, and infant care.",
+          text: response,
+          isUser: false,
+        ));
+        // Add AI response to context
+        _conversationContext.add('Assistant: $response');
+      });
+    } catch (e) {
+      setState(() {
+        _isTyping = false;
+        _messages.add(ChatMessage(
+          text: 'Sorry, I encountered an error. Please try again.',
           isUser: false,
         ));
       });
-    });
+    }
   }
 
   @override

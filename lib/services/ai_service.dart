@@ -1,9 +1,9 @@
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:health_app/constants/constants.dart';
 import 'package:health_app/models/health_data.dart';
 import 'package:health_app/services/database_service.dart';
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:health_app/constansts/constants.dart';
 
 class AIService {
   static final AIService _instance = AIService._internal();
@@ -16,7 +16,7 @@ class AIService {
   static const String _lastRequestDateKey = 'gemini_last_request_date';
   
   // Free tier limits
-  static const int _dailyRequestLimit = 60; // Conservative estimate for free tier
+  static const int _dailyRequestLimit = 60;
 
   // Define risk conditions and their symptoms
   final Map<String, Map<String, dynamic>> _pregnancyRiskConditions = {
@@ -116,27 +116,29 @@ class AIService {
   
   Future<void> _initializeModel() async {
     try {
-      // Try to get API key from secure storage
       String? storedApiKey = await _secureStorage.read(key: _apiKeyKey);
       
-      // If no API key is found in storage, use the one from constants
       if (storedApiKey == null || storedApiKey.isEmpty || storedApiKey == 'PLACEHOLDER_API_KEY') {
         print('Using API key from constants file');
         storedApiKey = aimodelapiKey;
-        // Save it to storage for future use
         await _secureStorage.write(key: _apiKeyKey, value: aimodelapiKey);
       }
       
       _model = GenerativeModel(
-        model: 'gemini-2.0-flash', // Free tier model
-        apiKey: aimodelapiKey,
-        // Configure parameters to limit token usage
+        model: 'gemini-1.5-flash-latest',
+        apiKey: storedApiKey,
         generationConfig: GenerationConfig(
           temperature: 0.4,
-          maxOutputTokens: 1024, // Limit output size to conserve quota
+          maxOutputTokens: 1024,
           topK: 20,
           topP: 0.95,
         ),
+        safetySettings: [
+          SafetySetting(HarmCategory.harassment, HarmBlockThreshold.medium),
+          SafetySetting(HarmCategory.hateSpeech, HarmBlockThreshold.medium),
+          SafetySetting(HarmCategory.sexuallyExplicit, HarmBlockThreshold.high),
+          SafetySetting(HarmCategory.dangerousContent, HarmBlockThreshold.high),
+        ],
       );
       _isModelInitialized = true;
       print('Gemini model initialized successfully');
@@ -146,8 +148,7 @@ class AIService {
       _isModelInitialized = false;
     }
   }
-  
-  // Method to set the API key
+
   Future<bool> setApiKey(String apiKey) async {
     try {
       await _secureStorage.write(key: _apiKeyKey, value: apiKey);
@@ -159,7 +160,6 @@ class AIService {
     }
   }
 
-  // Method to check if API key is set
   Future<bool> isApiKeySet() async {
     try {
       final apiKey = await _secureStorage.read(key: _apiKeyKey);
@@ -169,33 +169,25 @@ class AIService {
     }
   }
   
-  // Method to check if we've exceeded daily request limit
   Future<bool> _canMakeRequest() async {
     try {
-      // Get current date as string (YYYY-MM-DD)
       final today = DateTime.now().toIso8601String().split('T')[0];
-      
-      // Get last request date
       final lastRequestDate = await _secureStorage.read(key: _lastRequestDateKey) ?? '';
       
-      // If it's a new day, reset counter
       if (lastRequestDate != today) {
         await _secureStorage.write(key: _requestCountKey, value: '0');
         await _secureStorage.write(key: _lastRequestDateKey, value: today);
         return true;
       }
       
-      // Check request count
       final requestCount = int.tryParse(await _secureStorage.read(key: _requestCountKey) ?? '0') ?? 0;
-      
       return requestCount < _dailyRequestLimit;
     } catch (e) {
       print('Error checking request limit: $e');
-      return true; // Allow request on error to avoid blocking functionality
+      return true;
     }
   }
   
-  // Method to increment request counter
   Future<void> _incrementRequestCount() async {
     try {
       final today = DateTime.now().toIso8601String().split('T')[0];
@@ -208,7 +200,6 @@ class AIService {
     }
   }
   
-  // Get remaining daily requests
   Future<int> getRemainingRequests() async {
     try {
       final today = DateTime.now().toIso8601String().split('T')[0];
@@ -226,20 +217,14 @@ class AIService {
     }
   }
 
-  // Main method to analyze health data and generate alerts
   Future<List<HealthAlert>> analyzeHealthData(Map<String, dynamic> latestData) async {
     try {
-      // Get all historical health data
       final allHealthData = await _databaseService.getAllHealthData();
-      
-      // Get vital signs
       final vitalSigns = await _databaseService.getVitalSigns();
       
       List<HealthAlert> alerts = [];
       
-      // First run AI-based analysis if available and within quota
       if (_isModelInitialized && _model != null) {
-        // Check if we can make a request
         if (await _canMakeRequest()) {
           final aiAlerts = await _aiAnalysis(vitalSigns, allHealthData, latestData);
           if (aiAlerts.isNotEmpty) {
@@ -247,7 +232,6 @@ class AIService {
           }
         } else {
           print('Daily AI request limit exceeded. Using rule-based analysis only.');
-          // Add a notification alert about the quota
           alerts.add(HealthAlert(
             id: DateTime.now().millisecondsSinceEpoch.toString(),
             title: 'AI Analysis Unavailable',
@@ -258,7 +242,6 @@ class AIService {
         }
       }
       
-      // Then run rule-based risk assessment as a backup
       if (alerts.isEmpty) {
         final ruleBasedAlerts = _ruleBasedAnalysis(vitalSigns, latestData);
         if (ruleBasedAlerts.isNotEmpty) {
@@ -273,11 +256,9 @@ class AIService {
     }
   }
   
-  // Rule-based analysis using predefined thresholds
   List<HealthAlert> _ruleBasedAnalysis(List<VitalSign> vitalSigns, Map<String, dynamic> latestData) {
     List<HealthAlert> alerts = [];
     
-    // Check for elevated blood pressure
     BloodPressure? bp;
     for (var vital in vitalSigns) {
       if (vital is BloodPressure) {
@@ -290,7 +271,6 @@ class AIService {
       final systolic = double.tryParse(bp.systolic) ?? 0;
       final diastolic = double.tryParse(bp.diastolic) ?? 0;
       
-      // Check for preeclampsia or gestational hypertension
       if (systolic >= 160 || diastolic >= 110) {
         alerts.add(HealthAlert(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -310,7 +290,6 @@ class AIService {
       }
     }
     
-    // Check for glucose levels (gestational diabetes)
     for (var vital in vitalSigns) {
       if (vital.name == 'Glucose') {
         final glucose = double.tryParse(vital.value) ?? 0;
@@ -326,7 +305,6 @@ class AIService {
       }
     }
     
-    // Check for hemoglobin levels (anemia)
     for (var vital in vitalSigns) {
       if (vital.name == 'Hemoglobin') {
         final hemoglobin = double.tryParse(vital.value) ?? 0;
@@ -342,7 +320,6 @@ class AIService {
       }
     }
     
-    // Check for fever/elevated temperature
     for (var vital in vitalSigns) {
       if (vital is Temperature) {
         final temp = double.tryParse(vital.value) ?? 0;
@@ -366,59 +343,49 @@ class AIService {
       }
     }
     
-    // Check for abnormal weight changes
     if (latestData.containsKey('weight') && latestData.containsKey('pregnancy_month')) {
       final weight = double.tryParse(latestData['weight'].toString()) ?? 0;
       final month = int.tryParse(latestData['pregnancy_month'].toString()) ?? 0;
       
-      // This is a simplified check - ideally would account for pre-pregnancy BMI
-      if (month > 0) {
-        // Check if weight gain is too low based on month
-        // Assuming recommended gain is ~1-2 kg per month after first trimester
-        if (month > 3) {
-          // Check previous weight data
-          _databaseService.getWeightHistory().then((weightHistory) {
-            if (weightHistory.isNotEmpty && weightHistory.length > 1) {
-              // Calculate weight gain rate
-              final latestEntry = weightHistory.first;
-              final previousEntry = weightHistory[1];
+      if (month > 0 && month > 3) {
+        _databaseService.getWeightHistory().then((weightHistory) {
+          if (weightHistory.isNotEmpty && weightHistory.length > 1) {
+            final latestEntry = weightHistory.first;
+            final previousEntry = weightHistory[1];
+            
+            final latestWeight = double.tryParse(latestEntry['value'].toString()) ?? 0;
+            final previousWeight = double.tryParse(previousEntry['value'].toString()) ?? 0;
+            final daysBetween = latestEntry['date'].difference(previousEntry['date']).inDays;
+            
+            if (daysBetween > 0) {
+              final weightGainPerMonth = (latestWeight - previousWeight) / daysBetween * 30;
               
-              final latestWeight = double.tryParse(latestEntry['value'].toString()) ?? 0;
-              final previousWeight = double.tryParse(previousEntry['value'].toString()) ?? 0;
-              final daysBetween = latestEntry['date'].difference(previousEntry['date']).inDays;
-              
-              if (daysBetween > 0) {
-                final weightGainPerMonth = (latestWeight - previousWeight) / daysBetween * 30;
-                
-                if (weightGainPerMonth < 0.5 && month > 3) {
-                  alerts.add(HealthAlert(
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    title: 'Insufficient Weight Gain',
-                    message: 'Your current weight gain of approximately ${weightGainPerMonth.toStringAsFixed(1)} kg per month is below the recommended range for your stage of pregnancy. This could potentially affect fetal growth. Please discuss your nutrition with your healthcare provider.',
-                    severity: AlertSeverity.medium,
-                    lastUpdated: DateTime.now(),
-                  ));
-                } else if (weightGainPerMonth > 3) {
-                  alerts.add(HealthAlert(
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    title: 'Excessive Weight Gain',
-                    message: 'Your current weight gain of approximately ${weightGainPerMonth.toStringAsFixed(1)} kg per month is above the recommended range for your stage of pregnancy. While weight gain is normal and necessary during pregnancy, excessive gain may increase risks. Please discuss with your healthcare provider.',
-                    severity: AlertSeverity.medium,
-                    lastUpdated: DateTime.now(),
-                  ));
-                }
+              if (weightGainPerMonth < 0.5 && month > 3) {
+                alerts.add(HealthAlert(
+                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                  title: 'Insufficient Weight Gain',
+                  message: 'Your current weight gain of approximately ${weightGainPerMonth.toStringAsFixed(1)} kg per month is below the recommended range for your stage of pregnancy. This could potentially affect fetal growth. Please discuss your nutrition with your healthcare provider.',
+                  severity: AlertSeverity.medium,
+                  lastUpdated: DateTime.now(),
+                ));
+              } else if (weightGainPerMonth > 3) {
+                alerts.add(HealthAlert(
+                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                  title: 'Excessive Weight Gain',
+                  message: 'Your current weight gain of approximately ${weightGainPerMonth.toStringAsFixed(1)} kg per month is above the recommended range for your stage of pregnancy. While weight gain is normal and necessary during pregnancy, excessive gain may increase risks. Please discuss with your healthcare provider.',
+                  severity: AlertSeverity.medium,
+                  lastUpdated: DateTime.now(),
+                ));
               }
-                        }
-          });
-        }
+            }
+          }
+        });
       }
     }
     
-    // Check symptoms for potential conditions
     if (latestData.containsKey('symptoms')) {
       final symptoms = latestData['symptoms'].toString().toLowerCase();
       
-      // Check for symptoms of placenta previa
       if (symptoms.contains('vaginal bleeding') || symptoms.contains('bleeding after')) {
         alerts.add(HealthAlert(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -429,7 +396,6 @@ class AIService {
         ));
       }
       
-      // Check for symptoms of HELLP syndrome
       if ((symptoms.contains('headache') || symptoms.contains('nausea')) && 
           (symptoms.contains('abdominal pain') || symptoms.contains('vision'))) {
         if (bp != null) {
@@ -452,20 +418,16 @@ class AIService {
     return alerts;
   }
   
-  // AI-based analysis using Gemini model
   Future<List<HealthAlert>> _aiAnalysis(List<VitalSign> vitalSigns, List<Map<String, dynamic>> allHealthData, Map<String, dynamic> latestData) async {
     try {
-      // If model isn't initialized or is null, return empty list
       if (!_isModelInitialized || _model == null) {
         return [];
       }
       
-      // Prepare health data for analysis
       final vitalSignsText = vitalSigns.map((vitalSign) {
         return '${vitalSign.name}: ${vitalSign.value} ${vitalSign.unit}';
       }).join('\n');
       
-      // Create a more detailed prompt for better analysis
       final prompt = '''
         As a medical AI specializing in maternal health, analyze these health data points and identify potential risks or complications. Pay special attention to extreme values and combinations of symptoms.
 
@@ -504,10 +466,8 @@ class AIService {
         }
       ''';
 
-      // Increment request counter before making the request
       await _incrementRequestCount();
 
-      // Get AI response
       final generatedContent = await _model.generateContent([Content.text(prompt)]);
       final analysisText = generatedContent.text;
       
@@ -516,12 +476,10 @@ class AIService {
         return [];
       }
       
-      print('AI Response: $analysisText'); // Debug log
+      print('AI Response: $analysisText');
       
-      // Extract JSON from the response
       String jsonStr = analysisText;
       
-      // If the response contains markdown code blocks, extract just the JSON
       if (jsonStr.contains('```json')) {
         final startIndex = jsonStr.indexOf('```json') + 7;
         final endIndex = jsonStr.lastIndexOf('```');
@@ -530,19 +488,16 @@ class AIService {
         }
       }
       
-      // Clean up any other text around the JSON
       final jsonStartIndex = jsonStr.indexOf('{');
       final jsonEndIndex = jsonStr.lastIndexOf('}') + 1;
       if (jsonStartIndex >= 0 && jsonEndIndex > jsonStartIndex) {
         jsonStr = jsonStr.substring(jsonStartIndex, jsonEndIndex);
       }
       
-      // Parse JSON
       final Map<String, dynamic> analysis = json.decode(jsonStr);
       
       List<HealthAlert> alerts = [];
       
-      // Process risks from analysis
       if (analysis.containsKey('risks')) {
         for (var risk in analysis['risks']) {
           final condition = risk['condition'];
@@ -553,7 +508,6 @@ class AIService {
               : ['Consult your healthcare provider'];
           final urgency = risk['urgency']?.toLowerCase() ?? 'routine';
               
-          // Map risk level and urgency to severity
           AlertSeverity severity;
           if (urgency == 'immediate' || riskLevel == 'high') {
             severity = AlertSeverity.high;
@@ -563,7 +517,6 @@ class AIService {
             severity = AlertSeverity.low;
           }
           
-          // Create message with evidence and recommendations
           final message = '''
             $evidence
             
@@ -584,7 +537,6 @@ class AIService {
         }
       }
       
-      // Add overall summary if available
       if (analysis.containsKey('summary') && analysis['summary'] != null) {
         alerts.add(HealthAlert(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -595,7 +547,6 @@ class AIService {
         ));
       }
       
-      // Add next steps if available
       if (analysis.containsKey('next_steps') && analysis['next_steps'] is List) {
         final nextSteps = (analysis['next_steps'] as List).cast<String>();
         if (nextSteps.isNotEmpty) {
@@ -616,32 +567,27 @@ class AIService {
     }
   }
   
-  // Method to get educational content about a specific condition
   Future<String> getEducationalContent(String condition) async {
     try {
       if (!_isModelInitialized || _model == null) {
         return _getDefaultEducationalContent(condition);
       }
       
-      // Check if we can make a request
       if (!(await _canMakeRequest())) {
         print('Daily AI request limit exceeded. Using default educational content.');
         return _getDefaultEducationalContent(condition);
       }
       
-      // Short, concise prompt to reduce token usage
       final prompt = '''
         Provide brief, practical information about $condition during pregnancy:
         1. What it is
-        2. Signs and symptoms
+        2. Key symptoms
         3. Treatment options
         4. When to seek medical help
         Max 300 words, simple language.
       ''';
       
-      // Increment request counter
       await _incrementRequestCount();
-      
       final generatedContent = await _model.generateContent([Content.text(prompt)]);
       final content = generatedContent.text;
       
@@ -652,9 +598,7 @@ class AIService {
     }
   }
   
-  // Fallback educational content
   String _getDefaultEducationalContent(String condition) {
-    // Check if we have predefined content for this condition
     if (_pregnancyRiskConditions.containsKey(condition)) {
       final data = _pregnancyRiskConditions[condition]!;
       
@@ -673,7 +617,6 @@ class AIService {
       ''';
     }
     
-    // General fallback
     return '''
       Information about $condition
 
@@ -683,8 +626,35 @@ class AIService {
     ''';
   }
   
-  // Method to get weight history (helper for database service)
   Future<List<Map<String, dynamic>>> getWeightHistory() async {
     return await _databaseService.getHistoryForField('weight');
   }
-} 
+
+  // Method to handle chat interactions
+  Future<String> chat(String userInput, {List<String>? context}) async {
+    try {
+      if (!_isModelInitialized || _model == null) {
+        return 'Error: AI model not initialized.';
+      }
+
+      // Prepare the prompt for the model
+      final contextText = context != null ? context.join('\n') : '';
+      final prompt = '''
+        Context:
+        $contextText
+
+        User: $userInput
+        Assistant: Let me help you with that.
+      ''';
+
+      // Generate a response using the model
+      final generatedContent = await _model!.generateContent([Content.text(prompt)]);
+      final response = generatedContent.text;
+
+      return response ?? 'Sorry, I could not generate a response.';
+    } catch (e) {
+      print('Error in chat: $e');
+      return 'An error occurred while processing your request.';
+    }
+  }
+}
