@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:health_app/theme/app_theme.dart';
+import 'package:health_app/screens/add_reminder_screen.dart';
 
 class RemindersScreen extends StatefulWidget {
   const RemindersScreen({super.key});
@@ -96,11 +97,16 @@ class _RemindersScreenState extends State<RemindersScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // Add new reminder
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Add reminder will be implemented soon'),
-              duration: Duration(seconds: 2),
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AddReminderScreen(
+                onReminderAdded: (reminder) {
+                  setState(() {
+                    _reminders.add(reminder);
+                  });
+                },
+              ),
             ),
           );
         },

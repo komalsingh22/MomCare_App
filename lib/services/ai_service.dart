@@ -383,34 +383,32 @@ class AIService {
               final latestEntry = weightHistory.first;
               final previousEntry = weightHistory[1];
               
-              if (previousEntry != null) {
-                final latestWeight = double.tryParse(latestEntry['value'].toString()) ?? 0;
-                final previousWeight = double.tryParse(previousEntry['value'].toString()) ?? 0;
-                final daysBetween = latestEntry['date'].difference(previousEntry['date']).inDays;
+              final latestWeight = double.tryParse(latestEntry['value'].toString()) ?? 0;
+              final previousWeight = double.tryParse(previousEntry['value'].toString()) ?? 0;
+              final daysBetween = latestEntry['date'].difference(previousEntry['date']).inDays;
+              
+              if (daysBetween > 0) {
+                final weightGainPerMonth = (latestWeight - previousWeight) / daysBetween * 30;
                 
-                if (daysBetween > 0) {
-                  final weightGainPerMonth = (latestWeight - previousWeight) / daysBetween * 30;
-                  
-                  if (weightGainPerMonth < 0.5 && month > 3) {
-                    alerts.add(HealthAlert(
-                      id: DateTime.now().millisecondsSinceEpoch.toString(),
-                      title: 'Insufficient Weight Gain',
-                      message: 'Your current weight gain of approximately ${weightGainPerMonth.toStringAsFixed(1)} kg per month is below the recommended range for your stage of pregnancy. This could potentially affect fetal growth. Please discuss your nutrition with your healthcare provider.',
-                      severity: AlertSeverity.medium,
-                      lastUpdated: DateTime.now(),
-                    ));
-                  } else if (weightGainPerMonth > 3) {
-                    alerts.add(HealthAlert(
-                      id: DateTime.now().millisecondsSinceEpoch.toString(),
-                      title: 'Excessive Weight Gain',
-                      message: 'Your current weight gain of approximately ${weightGainPerMonth.toStringAsFixed(1)} kg per month is above the recommended range for your stage of pregnancy. While weight gain is normal and necessary during pregnancy, excessive gain may increase risks. Please discuss with your healthcare provider.',
-                      severity: AlertSeverity.medium,
-                      lastUpdated: DateTime.now(),
-                    ));
-                  }
+                if (weightGainPerMonth < 0.5 && month > 3) {
+                  alerts.add(HealthAlert(
+                    id: DateTime.now().millisecondsSinceEpoch.toString(),
+                    title: 'Insufficient Weight Gain',
+                    message: 'Your current weight gain of approximately ${weightGainPerMonth.toStringAsFixed(1)} kg per month is below the recommended range for your stage of pregnancy. This could potentially affect fetal growth. Please discuss your nutrition with your healthcare provider.',
+                    severity: AlertSeverity.medium,
+                    lastUpdated: DateTime.now(),
+                  ));
+                } else if (weightGainPerMonth > 3) {
+                  alerts.add(HealthAlert(
+                    id: DateTime.now().millisecondsSinceEpoch.toString(),
+                    title: 'Excessive Weight Gain',
+                    message: 'Your current weight gain of approximately ${weightGainPerMonth.toStringAsFixed(1)} kg per month is above the recommended range for your stage of pregnancy. While weight gain is normal and necessary during pregnancy, excessive gain may increase risks. Please discuss with your healthcare provider.',
+                    severity: AlertSeverity.medium,
+                    lastUpdated: DateTime.now(),
+                  ));
                 }
               }
-            }
+                        }
           });
         }
       }
@@ -510,7 +508,7 @@ class AIService {
       await _incrementRequestCount();
 
       // Get AI response
-      final generatedContent = await _model!.generateContent([Content.text(prompt)]);
+      final generatedContent = await _model.generateContent([Content.text(prompt)]);
       final analysisText = generatedContent.text;
       
       if (analysisText == null || analysisText.isEmpty) {

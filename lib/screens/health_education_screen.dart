@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:health_app/models/health_data.dart';
 import 'package:health_app/services/ai_service.dart';
 import 'package:health_app/theme/app_theme.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
