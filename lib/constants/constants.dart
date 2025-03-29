@@ -1,1 +1,1 @@
-const String  aimodelapiKey='AIzaSyAEwny1U8r3O3v2NPuizHUh_UpRKdBhrMs';
+const String  aimodelapiKey='AIzaSyDcKdpx2Qo1h4DcIz55xUX-5iq9GqmGMik';

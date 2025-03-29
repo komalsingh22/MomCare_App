@@ -7,11 +7,11 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class AIService {
   static final AIService _instance = AIService._internal();
-  late final GenerativeModel? _model;
+  GenerativeModel? _model;
   bool _isModelInitialized = false;
   final DatabaseService _databaseService = DatabaseService();
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
-  static const String _apiKeyKey = 'gemini_api_key';
+  static const String _apiKeyKey = 'gemini_api_key';  // need attention
   static const String _requestCountKey = 'gemini_request_count';
   static const String _lastRequestDateKey = 'gemini_last_request_date';
   
@@ -116,36 +116,50 @@ class AIService {
   
   Future<void> _initializeModel() async {
     try {
-      String? storedApiKey = await _secureStorage.read(key: _apiKeyKey);
+      print('Using latest API key from constants file');
+      final latestApiKey = aimodelapiKey;
+      print('Latest API key from constants: ${latestApiKey.substring(0, 8)}...');
       
-      if (storedApiKey == null || storedApiKey.isEmpty || storedApiKey == 'PLACEHOLDER_API_KEY') {
-        print('Using API key from constants file');
-        storedApiKey = aimodelapiKey;
-        await _secureStorage.write(key: _apiKeyKey, value: aimodelapiKey);
-      }
+      // Always update secure storage with the latest key
+      await _secureStorage.write(key: _apiKeyKey, value: latestApiKey);
+      print('Updated API key in secure storage');
       
+      print('Initializing Gemini model with API key...');
+      
+      // Create the model with proper configuration
       _model = GenerativeModel(
-        model: 'gemini-1.5-flash-latest',
-        apiKey: storedApiKey,
+        model: 'gemini-2.0-flash',
+        apiKey: latestApiKey,
         generationConfig: GenerationConfig(
-          temperature: 0.4,
-          maxOutputTokens: 1024,
-          topK: 20,
+          temperature: 0.7,
+          maxOutputTokens: 2048,
+          topK: 40,
           topP: 0.95,
         ),
-        safetySettings: [
-          SafetySetting(HarmCategory.harassment, HarmBlockThreshold.medium),
-          SafetySetting(HarmCategory.hateSpeech, HarmBlockThreshold.medium),
-          SafetySetting(HarmCategory.sexuallyExplicit, HarmBlockThreshold.high),
-          SafetySetting(HarmCategory.dangerousContent, HarmBlockThreshold.high),
-        ],
       );
+      
+      print('Model created successfully');
+      
+      // Test the model with a simple prompt
+      try {
+        print('Testing model with simple prompt...');
+        final testContent = await _model!.generateContent([Content.text('Hello')]);
+        if (testContent.text == null || testContent.text!.isEmpty) {
+          throw Exception('Model test failed - no response received');
+        }
+        print('Model test successful');
+      } catch (testError) {
+        print('Model test failed: $testError');
+        throw Exception('Failed to initialize model: $testError');
+      }
+      
       _isModelInitialized = true;
       print('Gemini model initialized successfully');
     } catch (e) {
       print('Error initializing Gemini model: $e');
       _model = null;
       _isModelInitialized = false;
+      rethrow;
     }
   }
 
@@ -468,7 +482,13 @@ class AIService {
 
       await _incrementRequestCount();
 
-      final generatedContent = await _model.generateContent([Content.text(prompt)]);
+      final model = _model;
+      if (model == null) {
+        print('Model is null in _aiAnalysis');
+        return [];
+      }
+
+      final generatedContent = await model.generateContent([Content.text(prompt)]);
       final analysisText = generatedContent.text;
       
       if (analysisText == null || analysisText.isEmpty) {
@@ -588,7 +608,14 @@ class AIService {
       ''';
       
       await _incrementRequestCount();
-      final generatedContent = await _model.generateContent([Content.text(prompt)]);
+      
+      final model = _model;
+      if (model == null) {
+        print('Model is null in getEducationalContent');
+        return _getDefaultEducationalContent(condition);
+      }
+
+      final generatedContent = await model.generateContent([Content.text(prompt)]);
       final content = generatedContent.text;
       
       return content ?? _getDefaultEducationalContent(condition);
@@ -634,27 +661,84 @@ class AIService {
   Future<String> chat(String userInput, {List<String>? context}) async {
     try {
       if (!_isModelInitialized || _model == null) {
-        return 'Error: AI model not initialized.';
+        print('Model not initialized. Attempting to initialize...');
+        await _initializeModel();
+        if (!_isModelInitialized || _model == null) {
+          print('Failed to initialize model after attempt');
+          return 'Error: AI model not initialized. Please check your API key.';
+        }
+      }
+
+      // Check if we can make a request
+      if (!(await _canMakeRequest())) {
+        print('Daily request limit exceeded');
+        return 'Daily request limit exceeded. Please try again tomorrow.';
       }
 
       // Prepare the prompt for the model
       final contextText = context != null ? context.join('\n') : '';
       final prompt = '''
-        Context:
+        You are an expert maternal health assistant specializing in pregnancy, maternal health, and infant care. Your role is to provide accurate, supportive, and helpful information while always emphasizing the importance of consulting healthcare providers for medical advice.
+
+        Guidelines for responses:
+        1. Be clear and concise
+        2. Use simple, understandable language
+        3. Always include a disclaimer about consulting healthcare providers
+        4. Be supportive and encouraging
+        5. Focus on evidence-based information
+        6. If the question is about symptoms or concerns, always recommend consulting a healthcare provider
+
+        Previous conversation:
         $contextText
 
         User: $userInput
-        Assistant: Let me help you with that.
-      ''';
+        Assistant:''';
+
+      print('Sending prompt to Gemini model...');
+      print('Prompt length: ${prompt.length}');
+      
+      final model = _model;
+      if (model == null) {
+        print('Model is null in chat method');
+        return 'Error: AI model not initialized. Please check your API key.';
+      }
 
       // Generate a response using the model
-      final generatedContent = await _model!.generateContent([Content.text(prompt)]);
-      final response = generatedContent.text;
+      final generatedContent = await model.generateContent([Content.text(prompt)]);
+      
+      if (generatedContent.text == null || generatedContent.text!.isEmpty) {
+        print('Empty response from model');
+        return 'I apologize, but I couldn\'t generate a response. Please try again.';
+      }
 
-      return response ?? 'Sorry, I could not generate a response.';
-    } catch (e) {
+      final response = generatedContent.text!.trim();
+      print('Received response from model: $response');
+      
+      // Increment request count after successful response
+      await _incrementRequestCount();
+      
+      return response;
+      
+    } catch (e, stackTrace) {
       print('Error in chat: $e');
-      return 'An error occurred while processing your request.';
+      print('Stack trace: $stackTrace');
+      
+      // Print API key for debugging
+      _secureStorage.read(key: _apiKeyKey).then((apiKey) {
+        print('Current API key: ${apiKey ?? 'Not found in storage'}');
+      });
+     
+      if (e.toString().contains('API key')) {
+        return 'Error: Invalid or missing API key. Please check your API key settings.';
+      } else if (e.toString().contains('quota')) {
+        return 'Error: API quota exceeded. Please try again later.';
+      } else if (e.toString().contains('network')) {
+        return 'Error: Network connection issue. Please check your internet connection.';
+      } else if (e.toString().contains('model')) {
+        return 'Error: AI model error. Please try again.';
+      }
+      
+      return 'I apologize, but I encountered an error. Please try again.';
     }
   }
 }

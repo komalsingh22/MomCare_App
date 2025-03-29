@@ -4,7 +4,7 @@ import 'package:health_app/screens/reminders_screen.dart';
 class AddReminderScreen extends StatefulWidget {
   final void Function(Reminder) onReminderAdded;
 
-  const AddReminderScreen({Key? key, required this.onReminderAdded}) : super(key: key);
+  const AddReminderScreen({super.key, required this.onReminderAdded});
 
   @override
   _AddReminderScreenState createState() => _AddReminderScreenState();
@@ -40,7 +40,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 onSaved: (value) => _title = value ?? '',
               ),
               TextFormField(
-                decoration: InputDecoration(labelText: 'Description'),
+                decoration: const InputDecoration(labelText: 'Description'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter a description';
@@ -50,14 +50,14 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 onSaved: (value) => _description = value ?? '',
               ),
               ListTile(
-                title: Text('Date & Time'),
+                title: const Text('Date & Time'),
                 subtitle: Text(_dateTime.toString()),
                 onTap: () async {
                   final DateTime? picked = await showDatePicker(
                     context: context,
                     initialDate: _dateTime,
                     firstDate: DateTime.now(),
-                    lastDate: DateTime.now().add(Duration(days: 365)),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
                   );
                   if (picked != null) {
                     final TimeOfDay? timePicked = await showTimePicker(
@@ -91,9 +91,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     child: Text(type.toString().split('.').last),
                   );
                 }).toList(),
-                decoration: InputDecoration(labelText: 'Type'),
+                decoration: const InputDecoration(labelText: 'Type'),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
@@ -109,7 +109,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     Navigator.pop(context);
                   }
                 },
-                child: Text('Save Reminder'),
+                child: const Text('Save Reminder'),
               ),
             ],
           ),
