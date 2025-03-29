@@ -1,14 +1,14 @@
 import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io' show Platform;
 import 'package:health_app/models/health_data.dart';
 
 class DatabaseService {
-  static final DatabaseService _instance = DatabaseService._internal();
+  static final DatabaseService instance = DatabaseService._internal();
   static Database? _database;
-
-  factory DatabaseService() {
-    return _instance;
-  }
+  static DatabaseFactory databaseFactory = databaseFactoryFfi;
 
   DatabaseService._internal();
 
@@ -19,13 +19,69 @@ class DatabaseService {
   }
 
   Future<Database> _initDatabase() async {
-    String path = join(await getDatabasesPath(), 'health_data.db');
-    return await openDatabase(
-      path,
-      version: 2,
-      onCreate: _createTables,
-      onUpgrade: _onUpgrade,
-    );
+    try {
+      final dbPath = await getDatabasesPath();
+      final path = join(dbPath, 'health_data.db');
+      print('Initializing database at: $path');
+      
+      // Use appropriate database implementation based on platform
+      if (Platform.isAndroid || Platform.isIOS) {
+        // Use regular sqflite for mobile platforms
+        return await openDatabase(
+          path,
+          version: 3,
+          onCreate: _onCreate,
+          onUpgrade: _onUpgrade,
+        );
+      } else {
+        // Use sqflite_ffi for desktop platforms
+        sqfliteFfiInit();
+        return await databaseFactoryFfi.openDatabase(
+          path,
+          options: OpenDatabaseOptions(
+            version: 3,
+            onCreate: _onCreate,
+            onUpgrade: _onUpgrade,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error initializing database: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _onCreate(Database db, int version) async {
+    print('Creating database tables...');
+    await db.execute('''
+      CREATE TABLE health_data (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT NOT NULL,
+        weight REAL,
+        blood_pressure TEXT,
+        blood_sugar TEXT,
+        mood TEXT,
+        symptoms TEXT,
+        notes TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE reminders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        description TEXT,
+        reminder_type INTEGER NOT NULL,
+        date TEXT NOT NULL,
+        time TEXT NOT NULL,
+        is_completed INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
+    print('Database tables created successfully');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -34,6 +90,24 @@ class DatabaseService {
       await db.execute('DROP TABLE IF EXISTS vital_signs');
       await db.execute('DROP TABLE IF EXISTS health_alerts');
       await _createTables(db, newVersion);
+    }
+    
+    if (oldVersion < 3) {
+      // Create reminders table for version 3
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS reminders (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          description TEXT,
+          reminder_type INTEGER NOT NULL,
+          date TEXT NOT NULL,
+          time TEXT NOT NULL,
+          is_completed INTEGER DEFAULT 0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      ''');
+      print('Created reminders table for version 3');
     }
   }
 
@@ -71,6 +145,21 @@ class DatabaseService {
         severity INTEGER NOT NULL,
         timestamp TEXT NOT NULL,
         is_read INTEGER DEFAULT 0
+      )
+    ''');
+
+    // Reminders table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS reminders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        description TEXT,
+        reminder_type INTEGER NOT NULL,
+        date TEXT NOT NULL,
+        time TEXT NOT NULL,
+        is_completed INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )
     ''');
     
@@ -693,6 +782,150 @@ class DatabaseService {
       print('Marked health alert $alertId as read');
     } catch (e) {
       print('Error marking health alert as read: $e');
+      rethrow;
+    }
+  }
+
+  // Reminder CRUD operations
+  Future<int> saveReminder({
+    required String title,
+    String? description,
+    required int reminderType,
+    required DateTime date,
+    required DateTime time,
+  }) async {
+    try {
+      final db = await database;
+      final now = DateTime.now().toIso8601String();
+      
+      // Format date and time separately
+      final dateStr = date.toIso8601String().split('T')[0];
+      final timeStr = '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+      
+      print('Saving reminder:');
+      print('- Title: $title');
+      print('- Date: $dateStr');
+      print('- Time: $timeStr');
+      print('- Type: $reminderType');
+      
+      return await db.insert(
+        'reminders',
+        {
+          'title': title,
+          'description': description,
+          'reminder_type': reminderType,
+          'date': dateStr,
+          'time': timeStr,
+          'is_completed': 0,
+          'created_at': now,
+          'updated_at': now,
+        },
+      );
+    } catch (e) {
+      print('Error saving reminder: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getReminders() async {
+    try {
+      final db = await database;
+      return await db.query(
+        'reminders',
+        orderBy: 'date ASC, time ASC',
+      );
+    } catch (e) {
+      print('Error getting reminders: $e');
+      return [];
+    }
+  }
+
+  Future<bool> updateReminder({
+    required int id,
+    String? title,
+    String? description,
+    int? reminderType,
+    DateTime? date,
+    DateTime? time,
+    bool? isCompleted,
+  }) async {
+    try {
+      final db = await database;
+      final Map<String, dynamic> updates = {
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      if (title != null) updates['title'] = title;
+      if (description != null) updates['description'] = description;
+      if (reminderType != null) updates['reminder_type'] = reminderType;
+      if (date != null) updates['date'] = date.toIso8601String();
+      if (time != null) updates['time'] = time.toIso8601String();
+      if (isCompleted != null) updates['is_completed'] = isCompleted ? 1 : 0;
+
+      await db.update(
+        'reminders',
+        updates,
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      return true;
+    } catch (e) {
+      print('Error updating reminder: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteReminder(int id) async {
+    try {
+      final db = await database;
+      await db.delete(
+        'reminders',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      return true;
+    } catch (e) {
+      print('Error deleting reminder: $e');
+      return false;
+    }
+  }
+
+  Future<bool> toggleReminderCompletion(int id) async {
+    try {
+      final db = await database;
+      final List<Map<String, dynamic>> results = await db.query(
+        'reminders',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+
+      if (results.isEmpty) return false;
+
+      final currentStatus = results.first['is_completed'] == 1;
+      return await updateReminder(id: id, isCompleted: !currentStatus);
+    } catch (e) {
+      print('Error toggling reminder completion: $e');
+      return false;
+    }
+  }
+
+  Future<void> deleteDatabase() async {
+    try {
+      final dbPath = await getDatabasesPath();
+      final path = join(dbPath, 'health_data.db');
+      
+      if (Platform.isAndroid || Platform.isIOS) {
+        // Use regular sqflite for mobile platforms
+        await databaseFactory.deleteDatabase(path);
+      } else {
+        // Use sqflite_ffi for desktop platforms
+        await databaseFactoryFfi.deleteDatabase(path);
+      }
+      
+      _database = null;
+      print('Database deleted successfully');
+    } catch (e) {
+      print('Error deleting database: $e');
       rethrow;
     }
   }

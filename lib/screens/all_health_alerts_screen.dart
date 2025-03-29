@@ -11,7 +11,7 @@ class AllHealthAlertsScreen extends StatefulWidget {
 }
 
 class _AllHealthAlertsScreenState extends State<AllHealthAlertsScreen> {
-  final DatabaseService _databaseService = DatabaseService();
+  final DatabaseService _databaseService = DatabaseService.instance;
   List<HealthAlert> _alerts = [];
   bool _isLoading = true;
   

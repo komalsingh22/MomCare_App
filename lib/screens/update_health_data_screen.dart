@@ -46,7 +46,7 @@ class _UpdateHealthDataScreenState extends State<UpdateHealthDataScreen> with Si
   // Uploaded reports
   final List<String> _uploadedReports = [];
 
-  final DatabaseService _dbService = DatabaseService();
+  final DatabaseService _dbService = DatabaseService.instance;
   bool _isSaving = false;
 
   @override

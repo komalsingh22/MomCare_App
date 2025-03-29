@@ -32,7 +32,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
   late MoodData _moodData;
   late List<HealthReport> _healthReports;
   late List<HealthAlert> _healthAlerts = [];
-  final DatabaseService _databaseService = DatabaseService();
+  final DatabaseService _databaseService = DatabaseService.instance;
   final AIService _aiService = AIService();
   bool _isLoading = true;
   

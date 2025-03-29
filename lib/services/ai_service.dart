@@ -9,7 +9,7 @@ class AIService {
   static final AIService _instance = AIService._internal();
   GenerativeModel? _model;
   bool _isModelInitialized = false;
-  final DatabaseService _databaseService = DatabaseService();
+  final DatabaseService _databaseService = DatabaseService.instance;
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   static const String _apiKeyKey = 'gemini_api_key';  // need attention
   static const String _requestCountKey = 'gemini_request_count';
@@ -117,7 +117,7 @@ class AIService {
   Future<void> _initializeModel() async {
     try {
       print('Using latest API key from constants file');
-      final latestApiKey = aimodelapiKey;
+      const latestApiKey = aimodelapiKey;
       print('Latest API key from constants: ${latestApiKey.substring(0, 8)}...');
       
       // Always update secure storage with the latest key

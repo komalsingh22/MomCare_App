@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:health_app/theme/app_theme.dart';
 import 'package:health_app/screens/add_reminder_screen.dart';
+import 'package:health_app/services/database_service.dart';
 
 class RemindersScreen extends StatefulWidget {
   const RemindersScreen({super.key});
@@ -10,38 +11,107 @@ class RemindersScreen extends StatefulWidget {
 }
 
 class _RemindersScreenState extends State<RemindersScreen> {
-  final List<Reminder> _reminders = [
-    Reminder(
-      title: 'Prenatal Checkup',
-      dateTime: DateTime.now().add(const Duration(days: 3)),
-      description: 'Regular monthly checkup at City Hospital with Dr. Smith',
-      type: ReminderType.appointment,
-      isCompleted: false,
-    ),
-    Reminder(
-      title: 'Take Prenatal Vitamins',
-      dateTime: DateTime.now().add(const Duration(hours: 2)),
-      description: 'Take your daily prenatal vitamins with food',
-      type: ReminderType.medication,
-      isCompleted: false,
-      isRecurring: true,
-    ),
-    Reminder(
-      title: 'Ultrasound Appointment',
-      dateTime: DateTime.now().add(const Duration(days: 14)),
-      description: 'Growth scan ultrasound at Women\'s Care Center',
-      type: ReminderType.appointment,
-      isCompleted: false,
-    ),
-    Reminder(
-      title: 'Drink Water',
-      dateTime: DateTime.now(),
-      description: 'Remember to stay hydrated - at least 8 glasses today',
-      type: ReminderType.water,
-      isCompleted: true,
-      isRecurring: true,
-    ),
-  ];
+  final DatabaseService _databaseService = DatabaseService.instance;
+  List<Reminder> _reminders = [];
+  final DateTime _selectedDate = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReminders();
+  }
+
+  Future<void> _loadReminders() async {
+    try {
+      // Initialize database if needed
+      await _databaseService.database;
+      
+      final remindersData = await _databaseService.getReminders();
+      if (mounted) {
+        setState(() {
+          _reminders = remindersData.map((data) => Reminder(
+            id: data['id'],
+            title: data['title'],
+            description: data['description'],
+            dateTime: DateTime.parse('${data['date']} ${data['time']}'),
+            type: ReminderType.values[data['reminder_type']],
+            isCompleted: data['is_completed'] == 1,
+          )).toList();
+        });
+      }
+    } catch (e) {
+      print('Error loading reminders: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading reminders: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _addReminder(Reminder reminder) async {
+    try {
+      final id = await _databaseService.saveReminder(
+        title: reminder.title,
+        description: reminder.description,
+        reminderType: reminder.type.index,
+        date: reminder.dateTime,
+        time: reminder.dateTime,
+      );
+      
+      if (id != -1) {
+        setState(() {
+          reminder.id = id;
+          _reminders.add(reminder);
+          _reminders.sort((a, b) => a.dateTime.compareTo(b.dateTime));
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reminder added successfully')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to add reminder')),
+        );
+      }
+    } catch (e) {
+      print('Error adding reminder: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error adding reminder: $e')),
+      );
+    }
+  }
+
+  Future<void> _toggleReminderCompletion(Reminder reminder) async {
+    try {
+      final success = await _databaseService.toggleReminderCompletion(reminder.id!);
+      if (success) {
+        setState(() {
+          reminder.isCompleted = !reminder.isCompleted;
+        });
+      }
+    } catch (e) {
+      print('Error toggling reminder completion: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error updating reminder')),
+      );
+    }
+  }
+
+  Future<void> _deleteReminder(Reminder reminder) async {
+    try {
+      final success = await _databaseService.deleteReminder(reminder.id!);
+      if (success) {
+        setState(() {
+          _reminders.remove(reminder);
+        });
+      }
+    } catch (e) {
+      print('Error deleting reminder: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error deleting reminder')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +123,6 @@ class _RemindersScreenState extends State<RemindersScreen> {
           IconButton(
             icon: const Icon(Icons.calendar_month),
             onPressed: () {
-              // Show calendar view
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Calendar view will be implemented soon'),
@@ -66,7 +135,6 @@ class _RemindersScreenState extends State<RemindersScreen> {
       ),
       body: Column(
         children: [
-          // Date picker strip
           Container(
             padding: const EdgeInsets.symmetric(vertical: 16),
             decoration: BoxDecoration(
@@ -81,7 +149,6 @@ class _RemindersScreenState extends State<RemindersScreen> {
             ),
             child: _buildDateSelector(),
           ),
-          // Reminders list
           Expanded(
             child: _reminders.isEmpty
                 ? _buildEmptyState()
@@ -101,11 +168,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
             context,
             MaterialPageRoute(
               builder: (context) => AddReminderScreen(
-                onReminderAdded: (reminder) {
-                  setState(() {
-                    _reminders.add(reminder);
-                  });
-                },
+                onReminderAdded: _addReminder,
               ),
             ),
           );
@@ -240,142 +303,76 @@ class _RemindersScreenState extends State<RemindersScreen> {
         break;
       case ReminderType.medication:
         icon = Icons.medication_rounded;
-        color = const Color(0xFFFF8FAB); // Soft pink
+        color = const Color(0xFFFF8FAB);
         break;
       case ReminderType.water:
         icon = Icons.water_drop_outlined;
-        color = const Color(0xFF7AC9E8); // Soft blue
+        color = const Color(0xFF7AC9E8);
         break;
       case ReminderType.exercise:
         icon = Icons.directions_walk_rounded;
-        color = const Color(0xFF8CD3A9); // Soft green
+        color = const Color(0xFF4CAF50);
         break;
       default:
-        icon = Icons.notifications_active_rounded;
+        icon = Icons.notifications_rounded;
         color = AppTheme.primaryColor;
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+    return Dismissible(
+      key: Key(reminder.id.toString()),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        color: Colors.red,
+        child: const Icon(Icons.delete, color: Colors.white),
       ),
-      child: InkWell(
-        onTap: () {
-          // View reminder details
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
+      onDismissed: (direction) => _deleteReminder(reminder),
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 16),
+        child: ListTile(
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color),
+          ),
+          title: Text(
+            reminder.title,
+            style: TextStyle(
+              decoration: reminder.isCompleted ? TextDecoration.lineThrough : null,
+              color: reminder.isCompleted ? Colors.grey : null,
+            ),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Checkbox for completion
-              Container(
-                decoration: BoxDecoration(
-                  color: reminder.isCompleted 
-                      ? color 
-                      : color.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                padding: const EdgeInsets.all(8),
-                child: Icon(
-                  reminder.isCompleted 
-                      ? Icons.check_rounded 
-                      : icon,
-                  color: reminder.isCompleted 
-                      ? Colors.white 
-                      : color,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 16),
-              // Reminder details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      reminder.title,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: reminder.isCompleted 
-                            ? AppTheme.secondaryTextColor 
-                            : AppTheme.primaryTextColor,
-                        decoration: reminder.isCompleted 
-                            ? TextDecoration.lineThrough 
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      reminder.description,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppTheme.secondaryTextColor,
-                        decoration: reminder.isCompleted 
-                            ? TextDecoration.lineThrough 
-                            : null,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.access_time_rounded,
-                          size: 14,
-                          color: color.withOpacity(0.8),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _formatTime(reminder.dateTime),
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: color.withOpacity(0.8),
-                          ),
-                        ),
-                        if (reminder.isRecurring) ...[
-                          const SizedBox(width: 8),
-                          Icon(
-                            Icons.repeat,
-                            size: 14,
-                            color: color.withOpacity(0.8),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Daily',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: color.withOpacity(0.8),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              // Actions
-              IconButton(
-                icon: const Icon(
-                  Icons.more_vert,
+              ...[
+              Text(reminder.description!),
+              const SizedBox(height: 4),
+            ],
+              Text(
+                '${reminder.dateTime.hour.toString().padLeft(2, '0')}:${reminder.dateTime.minute.toString().padLeft(2, '0')}',
+                style: const TextStyle(
                   color: AppTheme.secondaryTextColor,
+                  fontSize: 12,
                 ),
-                onPressed: () {
-                  // Show more options
+              ),
+            ],
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Checkbox(
+                value: reminder.isCompleted,
+                onChanged: (bool? value) {
+                  if (value != null) {
+                    _toggleReminderCompletion(reminder);
+                  }
                 },
+                activeColor: AppTheme.primaryColor,
               ),
             ],
           ),
@@ -383,29 +380,23 @@ class _RemindersScreenState extends State<RemindersScreen> {
       ),
     );
   }
-
-  String _formatTime(DateTime dateTime) {
-    final hour = dateTime.hour.toString().padLeft(2, '0');
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
-  }
 }
 
 class Reminder {
+  int? id;
   final String title;
   final String description;
   final DateTime dateTime;
   final ReminderType type;
   bool isCompleted;
-  final bool isRecurring;
 
   Reminder({
+    this.id,
     required this.title,
-    required this.dateTime,
     required this.description,
+    required this.dateTime,
     required this.type,
     required this.isCompleted,
-    this.isRecurring = false,
   });
 }
 
