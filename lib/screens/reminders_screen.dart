@@ -350,7 +350,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ...[
-              Text(reminder.description!),
+              Text(reminder.description),
               const SizedBox(height: 4),
             ],
               Text(
