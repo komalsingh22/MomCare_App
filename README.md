@@ -1,6 +1,6 @@
-# EmpowerHer: AI-Powered Maternal Health App
+# MomCare
 
-EmpowerHer is a comprehensive mobile application built with Flutter that uses artificial intelligence to monitor the health of pregnant women, detect potential risks early, and provide educational resources to improve maternal and infant health outcomes.
+MomCare is a comprehensive mobile application built with Flutter that uses artificial intelligence to monitor the health of pregnant women, detect potential risks early, and provide educational resources to improve maternal and infant health outcomes.
 
 ## Key Features
 
