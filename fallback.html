@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MomCare App - Fallback Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 600px;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    h1 {
+      color: #4A90E2;
+    }
+    .btn {
+      background-color: #4A90E2;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 20px;
+      font-size: 16px;
+      text-decoration: none;
+    }
+    .btn:hover {
+      background-color: #3A7BC8;
+    }
+    .info {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f0f8ff;
+      border-radius: 4px;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>MomCare App</h1>
+    <p>This is a static fallback page to verify GitHub Pages is functioning correctly.</p>
+    <p>Current Time: <span id="time"></span></p>
+    
+    <a href="index.html" class="btn">Try Loading the App</a>
+    
+    <div class="info">
+      <h3>Troubleshooting Information:</h3>
+      <p>If you're seeing this page but not the app, it means:</p>
+      <ul>
+        <li>GitHub Pages is working correctly</li>
+        <li>There might be an issue with the Flutter web app configuration</li>
+      </ul>
+      <p>Common solutions:</p>
+      <ul>
+        <li>Clear your browser cache</li>
+        <li>Try a different browser</li>
+        <li>Check browser console for errors (F12)</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Display current time
+    function updateTime() {
+      document.getElementById('time').textContent = new Date().toString();
+    }
+    updateTime();
+    setInterval(updateTime, 1000);
+
+    // Log browser info for troubleshooting
+    console.log("Browser Information:", navigator.userAgent);
+    console.log("GitHub Pages Fallback Page Loaded Successfully");
+  </script>
+</body>
+</html> 

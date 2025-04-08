@@ -18,7 +18,8 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A maternal health application.">
+  <meta name="description" content="MomCare App - Maternal Health Application">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -32,28 +33,88 @@
   <title>MomCare App</title>
   <link rel="manifest" href="manifest.json">
 
-  <script>
-    // The value below is injected by flutter build, do not touch.
-    const serviceWorkerVersion = "3581210764";
-  </script>
-  <!-- This script adds the flutter initialization JS code -->
+  <!-- Ensure we use proper paths for script loading -->
   <script src="flutter.js" defer></script>
 </head>
 <body>
+  <!-- Loading indicator -->
+  <div id="loading" style="
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #ffffff;
+    font-family: Arial, sans-serif;
+  ">
+    <div style="text-align: center;">
+      <h2>Loading MomCare App...</h2>
+      <p>Please wait a moment</p>
+    </div>
+  </div>
+
   <script>
-    window.addEventListener('load', function(ev) {
-      // Download main.dart.js
-      _flutter.loader.loadEntrypoint({
-        serviceWorker: {
-          serviceWorkerVersion: serviceWorkerVersion,
-        },
-        onEntrypointLoaded: function(engineInitializer) {
-          engineInitializer.initializeEngine().then(function(appRunner) {
-            appRunner.runApp();
-          });
+    window.addEventListener('load', function() {
+      // Try to hide the loading indicator if the app loads successfully
+      setTimeout(function() {
+        var loadingElement = document.getElementById('loading');
+        if (loadingElement) {
+          loadingElement.style.display = 'none';
         }
-      });
+      }, 5000);
+      
+      // Initialize Flutter web
+      var scriptLoaded = false;
+      try {
+        _flutter.loader.loadEntrypoint({
+          onEntrypointLoaded: function(engineInitializer) {
+            scriptLoaded = true;
+            engineInitializer.initializeEngine().then(function(appRunner) {
+              appRunner.runApp();
+              
+              // Hide loading indicator once app is loaded
+              var loadingElement = document.getElementById('loading');
+              if (loadingElement) {
+                loadingElement.style.display = 'none';
+              }
+            });
+          }
+        });
+      } catch (e) {
+        console.error("Error loading Flutter application:", e);
+        
+        // If there's an error, update the loading text
+        var loadingElement = document.getElementById('loading');
+        if (loadingElement) {
+          loadingElement.innerHTML = '<div style="text-align: center; color: #e53935;">' +
+            '<h2>Error Loading App</h2>' +
+            '<p>There was a problem loading the application.</p>' +
+            '<p>Try refreshing the page or clearing your browser cache.</p>' +
+            '<p>Error details: ' + e.message + '</p>' +
+            '</div>';
+        }
+      }
+      
+      // Backup check - if the script isn't loaded after 10s, show an error
+      setTimeout(function() {
+        if (!scriptLoaded) {
+          var loadingElement = document.getElementById('loading');
+          if (loadingElement) {
+            loadingElement.innerHTML = '<div style="text-align: center; color: #e53935;">' +
+              '<h2>App Loading Timeout</h2>' +
+              '<p>The application took too long to load.</p>' +
+              '<p>Try refreshing the page or using a different browser.</p>' +
+              '</div>';
+          }
+        }
+      }, 10000);
     });
   </script>
+  
+  <!-- Main entry point JavaScript -->
+  <script src="main.dart.js" type="application/javascript"></script>
 </body>
 </html>
