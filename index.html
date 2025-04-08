@@ -18,103 +18,117 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="MomCare App - Maternal Health Application">
+  <meta name="description" content="MomCare App - Maternal Health Assistant">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="MomCare App">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="icon" type="image/png" href="favicon.png">
 
   <title>MomCare App</title>
   <link rel="manifest" href="manifest.json">
 
-  <!-- Ensure we use proper paths for script loading -->
+  <!-- Loading indicator style -->
+  <style>
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      padding: 0;
+      font-family: 'Roboto', sans-serif;
+      background-color: #f5f7fa;
+    }
+    .loading-card {
+      padding: 24px;
+      border-radius: 8px;
+      background-color: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      text-align: center;
+      max-width: 400px;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      margin: 20px auto;
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-left-color: #e91e63;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .loading-text {
+      margin: 16px 0;
+      color: #555;
+    }
+    .fallback {
+      margin-top: 24px;
+      text-decoration: none;
+      color: #2196f3;
+    }
+  </style>
+  
+  <!-- This script adds the flutter initialization JS code -->
   <script src="flutter.js" defer></script>
 </head>
-<body>
-  <!-- Loading indicator -->
-  <div id="loading" style="
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #ffffff;
-    font-family: Arial, sans-serif;
-  ">
-    <div style="text-align: center;">
-      <h2>Loading MomCare App...</h2>
-      <p>Please wait a moment</p>
-    </div>
+<body class="loading">
+  <div class="loading-card">
+    <h2>MomCare App</h2>
+    <div class="spinner"></div>
+    <p class="loading-text">Loading application...</p>
+    <div id="error-message" style="display: none; color: #e53935;"></div>
+    <a href="fallback.html" class="fallback">Having trouble? Try fallback page</a>
   </div>
 
   <script>
+    // Hide loading UI after 8 seconds even if app doesn't load
+    setTimeout(function() {
+      document.body.classList.remove('loading');
+    }, 8000);
+    
     window.addEventListener('load', function() {
-      // Try to hide the loading indicator if the app loads successfully
+      var loading = document.querySelector('.loading-card');
+      
+      // If the Flutter app loads successfully, this class will be removed
+      // and the loading indicator will disappear
+      _flutter.loader.loadEntrypoint({
+        onEntrypointLoaded: function(engineInitializer) {
+          engineInitializer.initializeEngine().then(function(appRunner) {
+            document.body.classList.remove('loading');
+            appRunner.runApp();
+          }).catch(function(error) {
+            document.getElementById('error-message').style.display = 'block';
+            document.getElementById('error-message').textContent = 
+              'Failed to initialize the app: ' + error.message;
+          });
+        },
+        onError: function(error) {
+          document.getElementById('error-message').style.display = 'block';
+          document.getElementById('error-message').textContent = 
+            'Error loading Flutter app: ' + error.message;
+        }
+      });
+      
+      // Fallback - if Flutter fails to load after 5 seconds, display error
       setTimeout(function() {
-        var loadingElement = document.getElementById('loading');
-        if (loadingElement) {
-          loadingElement.style.display = 'none';
+        if (document.body.classList.contains('loading')) {
+          document.getElementById('error-message').style.display = 'block';
+          document.getElementById('error-message').innerHTML = 
+            'App is taking too long to load.<br>Try clearing your browser cache or using a different browser.';
         }
       }, 5000);
-      
-      // Initialize Flutter web
-      var scriptLoaded = false;
-      try {
-        _flutter.loader.loadEntrypoint({
-          onEntrypointLoaded: function(engineInitializer) {
-            scriptLoaded = true;
-            engineInitializer.initializeEngine().then(function(appRunner) {
-              appRunner.runApp();
-              
-              // Hide loading indicator once app is loaded
-              var loadingElement = document.getElementById('loading');
-              if (loadingElement) {
-                loadingElement.style.display = 'none';
-              }
-            });
-          }
-        });
-      } catch (e) {
-        console.error("Error loading Flutter application:", e);
-        
-        // If there's an error, update the loading text
-        var loadingElement = document.getElementById('loading');
-        if (loadingElement) {
-          loadingElement.innerHTML = '<div style="text-align: center; color: #e53935;">' +
-            '<h2>Error Loading App</h2>' +
-            '<p>There was a problem loading the application.</p>' +
-            '<p>Try refreshing the page or clearing your browser cache.</p>' +
-            '<p>Error details: ' + e.message + '</p>' +
-            '</div>';
-        }
-      }
-      
-      // Backup check - if the script isn't loaded after 10s, show an error
-      setTimeout(function() {
-        if (!scriptLoaded) {
-          var loadingElement = document.getElementById('loading');
-          if (loadingElement) {
-            loadingElement.innerHTML = '<div style="text-align: center; color: #e53935;">' +
-              '<h2>App Loading Timeout</h2>' +
-              '<p>The application took too long to load.</p>' +
-              '<p>Try refreshing the page or using a different browser.</p>' +
-              '</div>';
-          }
-        }
-      }, 10000);
     });
   </script>
   
-  <!-- Main entry point JavaScript -->
+  <!-- Main entry point -->
   <script src="main.dart.js" type="application/javascript"></script>
 </body>
 </html>
