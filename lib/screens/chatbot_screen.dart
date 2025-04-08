@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:health_app/theme/app_theme.dart';
 import 'package:health_app/services/ai_service.dart';
-import 'package:health_app/screens/api_key_setup_screen.dart';
 
 class ChatbotScreen extends StatefulWidget {
   const ChatbotScreen({super.key});
@@ -16,20 +15,6 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   final AIService _aiService = AIService();
   bool _isTyping = false;
   final List<String> _conversationContext = [];
-  bool _isApiKeySet = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkApiKey();
-  }
-
-  Future<void> _checkApiKey() async {
-    final hasKey = await _aiService.isApiKeySet();
-    setState(() {
-      _isApiKeySet = hasKey;
-    });
-  }
 
   @override
   void dispose() {
@@ -39,28 +24,6 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
   Future<void> _sendMessage() async {
     if (_messageController.text.trim().isEmpty) return;
-
-    if (!_isApiKeySet) {
-      // Navigate to API key setup screen
-      final result = await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ApiKeySetupScreen()),
-      );
-      
-      if (result == true) {
-        await _checkApiKey();
-      }
-      
-      if (!_isApiKeySet) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please set up your API key to use the chatbot'),
-            duration: Duration(seconds: 3),
-          ),
-        );
-        return;
-      }
-    }
 
     final String userMessage = _messageController.text;
     setState(() {

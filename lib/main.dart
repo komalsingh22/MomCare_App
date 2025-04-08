@@ -3,7 +3,6 @@ import 'package:health_app/screens/chatbot_screen.dart';
 import 'package:health_app/screens/health_dashboard_screen.dart';
 import 'package:health_app/screens/reminders_screen.dart';
 import 'package:health_app/screens/resources_screen.dart';
-import 'package:health_app/screens/api_key_setup_screen.dart';
 import 'package:health_app/theme/app_theme.dart';
 
 void main() {
@@ -31,11 +30,7 @@ class HealthApp extends StatelessWidget {
           bodyMedium: TextStyle(color: AppTheme.primaryTextColor),
         ),
       ),
-      routes: {
-        '/': (context) => const HomeScreen(),
-        '/api_key_setup': (context) => const ApiKeySetupScreen(),
-      },
-      initialRoute: '/',
+      home: const HomeScreen(),
       debugShowCheckedModeBanner: false,
     );
   }

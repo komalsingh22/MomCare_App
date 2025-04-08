@@ -6,6 +6,13 @@ class HealthData {
     required this.id,
     required this.lastUpdated,
   });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'lastUpdated': lastUpdated.toIso8601String(),
+    };
+  }
 }
 
 class PregnancyData extends HealthData {

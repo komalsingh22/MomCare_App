@@ -1,1 +1,2 @@
-const String  aimodelapiKey='AIzaSyDcKdpx2Qo1h4DcIz55xUX-5iq9GqmGMik';
+// Backend URL - change this when deploying to production
+const String backendUrl = 'http://localhost:8080';
