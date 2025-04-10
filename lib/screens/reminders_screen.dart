@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:health_app/theme/app_theme.dart';
 import 'package:health_app/screens/add_reminder_screen.dart';
-import 'package:health_app/services/database_service.dart';
+import 'package:health_app/services/api_service.dart';
 
 class RemindersScreen extends StatefulWidget {
   const RemindersScreen({super.key});
@@ -11,9 +11,10 @@ class RemindersScreen extends StatefulWidget {
 }
 
 class _RemindersScreenState extends State<RemindersScreen> {
-  final DatabaseService _databaseService = DatabaseService.instance;
+  final ApiService _apiService = ApiService.instance;
   List<Reminder> _reminders = [];
   final DateTime _selectedDate = DateTime.now();
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -23,35 +24,62 @@ class _RemindersScreenState extends State<RemindersScreen> {
 
   Future<void> _loadReminders() async {
     try {
-      // Initialize database if needed
-      await _databaseService.database;
+      setState(() {
+        _isLoading = true;
+      });
       
-      final remindersData = await _databaseService.getReminders();
+      // Use the API service to get reminders from the backend
+      final remindersData = await _apiService.getReminders();
       if (mounted) {
         setState(() {
           _reminders = remindersData.map((data) => Reminder(
             id: data['id'],
             title: data['title'],
             description: data['description'],
-            dateTime: DateTime.parse('${data['date']} ${data['time']}'),
-            type: ReminderType.values[data['reminder_type']],
-            isCompleted: data['is_completed'] == 1,
+            dateTime: _parseDateTimeFromReminder(data['date'], data['time']),
+            type: ReminderType.values[data['reminderType'] ?? 0],
+            isCompleted: data['isCompleted'] == true,
           )).toList();
+          _isLoading = false;
         });
       }
     } catch (e) {
       print('Error loading reminders: $e');
       if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading reminders: $e')),
         );
       }
     }
   }
+  
+  DateTime _parseDateTimeFromReminder(String dateStr, String timeStr) {
+    try {
+      // Parse date (assuming format YYYY-MM-DD)
+      final dateParts = dateStr.split('-');
+      
+      // Parse time (assuming format HH:MM)
+      final timeParts = timeStr.split(':');
+      
+      return DateTime(
+        int.parse(dateParts[0]), // year
+        int.parse(dateParts[1]), // month
+        int.parse(dateParts[2]), // day
+        int.parse(timeParts[0]), // hour
+        int.parse(timeParts[1]), // minute
+      );
+    } catch (e) {
+      print('Error parsing date/time: $e');
+      return DateTime.now(); // Fallback
+    }
+  }
 
   Future<void> _addReminder(Reminder reminder) async {
     try {
-      final id = await _databaseService.saveReminder(
+      final id = await _apiService.saveReminder(
         title: reminder.title,
         description: reminder.description,
         reminderType: reminder.type.index,
@@ -83,7 +111,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
 
   Future<void> _toggleReminderCompletion(Reminder reminder) async {
     try {
-      final success = await _databaseService.toggleReminderCompletion(reminder.id!);
+      final success = await _apiService.toggleReminderCompletion(reminder.id!);
       if (success) {
         setState(() {
           reminder.isCompleted = !reminder.isCompleted;
@@ -99,7 +127,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
 
   Future<void> _deleteReminder(Reminder reminder) async {
     try {
-      final success = await _databaseService.deleteReminder(reminder.id!);
+      final success = await _apiService.deleteReminder(reminder.id!);
       if (success) {
         setState(() {
           _reminders.remove(reminder);
@@ -150,15 +178,17 @@ class _RemindersScreenState extends State<RemindersScreen> {
             child: _buildDateSelector(),
           ),
           Expanded(
-            child: _reminders.isEmpty
-                ? _buildEmptyState()
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _reminders.length,
-                    itemBuilder: (context, index) {
-                      return _buildReminderItem(_reminders[index]);
-                    },
-                  ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _reminders.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _reminders.length,
+                        itemBuilder: (context, index) {
+                          return _buildReminderItem(_reminders[index]);
+                        },
+                      ),
           ),
         ],
       ),

@@ -9,7 +9,7 @@ import 'package:health_app/widgets/health_report_widget.dart';
 import 'package:health_app/widgets/mood_widget.dart';
 import 'package:health_app/widgets/pregnancy_progress_widget.dart';
 import 'package:health_app/utils/date_utils.dart' as app_date_utils;
-import 'package:health_app/services/database_service.dart';
+import 'package:health_app/services/api_service.dart';
 import 'package:health_app/services/ai_service.dart';
 import 'package:health_app/screens/all_health_alerts_screen.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -32,7 +32,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
   late MoodData _moodData;
   late List<HealthReport> _healthReports;
   late List<HealthAlert> _healthAlerts = [];
-  final DatabaseService _databaseService = DatabaseService.instance;
+  final ApiService _apiService = ApiService.instance;
   final AIService _aiService = AIService();
   bool _isLoading = true;
   
@@ -63,90 +63,56 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
   }
 
   Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-    });
-
     try {
       print('Loading dashboard data...');
       
-      // Get vital signs (weight, BP, etc.)
-      final vitalSigns = await _databaseService.getVitalSigns();
-      print('Loaded ${vitalSigns.length} vital signs');
+      // Get health alerts
+      final alerts = await _apiService.getHealthAlerts();
       
-      // Get latest health data for AI analysis
-      final latestHealthData = await _databaseService.getLatestHealthData();
+      // Get latest vital signs
+      final vitalSigns = await _apiService.getVitalSigns();
       
-      // Run AI analysis on the data
-      final aiAlerts = await _aiService.analyzeHealthData(latestHealthData ?? {});
-      print('AI analysis generated ${aiAlerts.length} health alerts');
+      // Get pregnancy data
+      final pregnancyDataMap = await _apiService.getPregnancyData();
       
-      // Get health alerts (combining existing alerts with AI-generated ones)
-      final dbAlerts = await _databaseService.getHealthAlerts();
-      final allAlerts = [...dbAlerts, ...aiAlerts];
+      // Get mood data
+      final moodDataMap = await _apiService.getMoodData();
       
-      // Save AI-generated alerts to database
-      for (var alert in aiAlerts) {
-        await _databaseService.saveHealthAlert(alert);
-      }
+      // Health reports not implemented in API yet
       
-      // Load mood data using the new method
-      final moodData = await _databaseService.getMoodData();
-      print('MOOD DATA from DB: Current rating = ${moodData['currentMoodRating']}, History entries = ${moodData['moodHistory'].length}');
-
-      // Get pregnancy data if available
-      final pregnancyData = await _databaseService.getPregnancyData();
-      
+      // Update state
       setState(() {
-        _vitalSigns = vitalSigns;
-        _healthAlerts = allAlerts;
-        _latestHealthData = latestHealthData;
-        
-        // Update pregnancy data if available
-        if (pregnancyData != null && 
-            pregnancyData['due_date'] != null && 
-            pregnancyData['due_date'].isNotEmpty) {
-          _pregnancyData = PregnancyData(
-            id: _pregnancyData.id,
-            lastUpdated: DateTime.now(),
-            currentMonth: pregnancyData['current_month'] ?? 1,
-            dueDate: DateTime.parse(pregnancyData['due_date']),
-            milestones: _pregnancyData.milestones,
-          );
-          print('Updated pregnancy data: Due date: ${pregnancyData['due_date']}, Month: ${pregnancyData['current_month']}');
-        } else {
-          _pregnancyData = PregnancyData(
-            id: _pregnancyData.id,
-            lastUpdated: DateTime.now(),
-            currentMonth: 1,
-            dueDate: DateTime.now(),
-            milestones: _pregnancyData.milestones,
-          );
+        if (alerts.isNotEmpty) {
+          _healthAlerts = alerts;
+          print('DASHBOARD: Loaded ${alerts.length} alerts');
         }
         
-        // Update mood data - IMPORTANT part
-        if (moodData['currentMoodRating'] != null) {
-          // Log previous mood data
-          print('DASHBOARD: Updating mood from ${_moodData.rating} to ${moodData['currentMoodRating']}');
-          
-          List<dynamic> historyEntries = [];
-          
-          for (var entry in moodData['moodHistory']) {
-            historyEntries.add({
-              'date': entry['date'],
-              'rating': entry['rating'],
-            });
-          }
-          
-          _moodData = MoodData(
-            id: _moodData.id,
+        if (vitalSigns.isNotEmpty) {
+          _vitalSigns = vitalSigns;
+          print('DASHBOARD: Loaded ${vitalSigns.length} vital signs');
+        }
+        
+        if (pregnancyDataMap != null) {
+          _pregnancyData = PregnancyData(
+            id: '1',
             lastUpdated: DateTime.now(),
-            rating: moodData['currentMoodRating'],
-            history: historyEntries,
+            currentMonth: pregnancyDataMap['current_month'] ?? 1,
+            dueDate: pregnancyDataMap['due_date'] != null ? 
+                     DateTime.parse(pregnancyDataMap['due_date']) : 
+                     DateTime.now().add(const Duration(days: 270)),
+            milestones: [],
           );
-          
-          // Log updated mood data for verification
-          print('DASHBOARD: Updated mood to rating = ${_moodData.rating}, History size = ${_moodData.history?.length ?? 0}');
+          print('DASHBOARD: Loaded pregnancy data with due date ${_pregnancyData.dueDate}');
+        }
+        
+        if (moodDataMap['currentMoodRating'] != null) {
+          _moodData = MoodData(
+            id: '1',
+            lastUpdated: DateTime.now(),
+            rating: moodDataMap['currentMoodRating'],
+            history: moodDataMap['moodHistory'],
+          );
+          print('DASHBOARD: Loaded mood data with rating ${_moodData.rating}');
         } else {
           print('DASHBOARD: No mood data found, keeping current value of ${_moodData.rating}');
         }
@@ -635,7 +601,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                         vitalSign.value,
                         style: Theme.of(context).textTheme.displaySmall?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: iconColor,
+                          color: iconColor, 
                         ),
                       ),
                       const SizedBox(width: 4),
@@ -760,7 +726,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
 
   Future<void> _dismissAlert(HealthAlert alert) async {
     try {
-      await _databaseService.markHealthAlertAsRead(alert.id);
+      await _apiService.markHealthAlertAsRead(alert.id);
       setState(() {
         _healthAlerts.removeWhere((a) => a.id == alert.id);
       });

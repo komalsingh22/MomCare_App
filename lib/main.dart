@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:health_app/screens/chatbot_screen.dart';
 import 'package:health_app/screens/health_dashboard_screen.dart';
 import 'package:health_app/screens/reminders_screen.dart';
@@ -6,6 +7,11 @@ import 'package:health_app/screens/resources_screen.dart';
 import 'package:health_app/theme/app_theme.dart';
 
 void main() {
+  // Set up web-specific configurations
+  if (kIsWeb) {
+    print('Running in web mode - configuring for web');
+  }
+  
   runApp(const HealthApp());
 }
 

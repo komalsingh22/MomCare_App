@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:health_app/theme/app_theme.dart';
 import 'package:health_app/utils/connectivity_helper.dart';
 import 'package:health_app/widgets/offline_indicator.dart';
-import 'package:health_app/services/database_service.dart';
+import 'package:health_app/services/api_service.dart';
 
 class UpdateHealthDataScreen extends StatefulWidget {
   const UpdateHealthDataScreen({super.key});
@@ -46,7 +46,7 @@ class _UpdateHealthDataScreenState extends State<UpdateHealthDataScreen> with Si
   // Uploaded reports
   final List<String> _uploadedReports = [];
 
-  final DatabaseService _dbService = DatabaseService.instance;
+  final ApiService _apiService = ApiService.instance;
   bool _isSaving = false;
 
   @override
@@ -742,8 +742,8 @@ class _UpdateHealthDataScreenState extends State<UpdateHealthDataScreen> with Si
               
         print('Saving data with fields: ${dataToSave.keys.join(', ')}');
         
-        // Save to database
-        final result = await _dbService.saveHealthData(
+        // Save to API backend instead of local database
+        final result = await _apiService.saveHealthData(
           pregnancyMonth: dataToSave['pregnancyMonth'],
           dueDate: dataToSave['dueDate'],
           weight: dataToSave['weight'],

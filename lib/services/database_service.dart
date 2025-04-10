@@ -3,7 +3,6 @@ import 'package:path/path.dart';
 import 'dart:io' show Platform;
 import 'dart:io';
 import 'package:health_app/models/health_data.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class DatabaseService {
   static final DatabaseService instance = DatabaseService._internal();

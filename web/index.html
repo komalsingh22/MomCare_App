@@ -31,6 +31,17 @@
 
   <title>health_app</title>
   <link rel="manifest" href="manifest.json">
+  
+  <!-- CORS debug handler for Flutter Web -->
+  <script src="cors_handler.js"></script>
+  
+  <!-- Flutter web configuration -->
+  <script>
+    // Basic debug logging for Flutter web
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      console.log('Running in development mode on: ' + window.location.hostname + ':' + window.location.port);
+    }
+  </script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

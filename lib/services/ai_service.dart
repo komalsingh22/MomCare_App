@@ -7,7 +7,7 @@ import 'dart:convert';
 class AIService {
   static final AIService _instance = AIService._internal();
   final DatabaseService _databaseService = DatabaseService.instance;
-  
+
   factory AIService() {
     return _instance;
   }
@@ -23,7 +23,7 @@ class AIService {
       
       // Send data to backend for analysis
       final response = await http.post(
-        Uri.parse('$backendUrl/analyze'),
+        Uri.parse('$backendUrl/api/analyze'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'vitalSigns': vitalSigns,
@@ -46,14 +46,14 @@ class AIService {
               .toList());
         }
       }
-
+      
       return alerts;
     } catch (e) {
       print('Error analyzing health data: $e');
       return [];
     }
   }
-
+  
   AlertSeverity _parseSeverity(String? severity) {
     switch (severity?.toLowerCase()) {
       case 'high':
@@ -70,15 +70,27 @@ class AIService {
   Future<String> chat(String message, {List<String>? context}) async {
     try {
       final response = await http.post(
-        Uri.parse('$backendUrl/chat'),
+        Uri.parse('$backendUrl/api/chat'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'prompt': message}),
+        body: jsonEncode({
+          'messages': [
+            {
+              'role': 'user',
+              'content': message
+            }
+          ],
+          'userInfo': {
+            'pregnancyMonth': 0,
+            'dueDate': '',
+            'recentSymptoms': ''
+          }
+        }),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return data['response'] ?? 'Sorry, I could not process your request.';
-      } else {
+          } else {
         throw Exception('Failed to get response from server: ${response.statusCode}');
       }
     } catch (e) {
@@ -86,13 +98,16 @@ class AIService {
       throw Exception('Failed to communicate with the server');
     }
   }
-
+  
   Future<String> getEducationalContent(String condition) async {
     try {
       final response = await http.post(
-        Uri.parse('$backendUrl/educational'),
+        Uri.parse('$backendUrl/api/generate-educational-content'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'condition': condition}),
+        body: jsonEncode({
+          'query': condition,
+          'category': 'General'
+        }),
       );
 
       if (response.statusCode == 200) {
@@ -106,7 +121,7 @@ class AIService {
       return _getDefaultEducationalContent(condition);
     }
   }
-
+  
   String _getDefaultEducationalContent(String condition) {
     return '''
       Information about $condition
