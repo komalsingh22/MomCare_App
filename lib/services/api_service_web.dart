@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:health_app/models/health_data.dart';
 import 'package:http/http.dart' as http;
+import 'package:health_app/constants/constants.dart';
 
 // Web-specific implementation
 class ApiServiceWeb {
@@ -13,7 +14,7 @@ class ApiServiceWeb {
   static bool get shouldUse => kIsWeb;
   
   // Base API URL for web - ensure this matches the backend URL
-  final String baseUrl = 'http://localhost:8080/api';
+  final String baseUrl = '$backendUrl/api';
   
   // Get headers with proper content types but NO CORS headers
   // (CORS headers must only be set by the server)

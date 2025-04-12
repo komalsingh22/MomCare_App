@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:health_app/models/health_data.dart';
+import 'package:health_app/constants/constants.dart';
 
 class ApiService {
   static final ApiService instance = ApiService._internal();
@@ -13,15 +14,15 @@ class ApiService {
   ApiService._internal() {
     // Determine the appropriate base URL based on platform
     if (kIsWeb) {
-      // For web, use localhost:8080 directly without any remapping
-      baseUrl = 'http://localhost:8080/api';
+      // For web, use backend URL
+      baseUrl = '$backendUrl/api';
       print('Web platform detected. Using direct backend URL: $baseUrl');
     } else if (Platform.isAndroid) {
-      baseUrl = 'http://10.0.2.2:8080/api'; // Android emulator needs special IP
+      baseUrl = '$backendUrl/api'; // Using backend URL for Android
     } else if (Platform.isIOS) {
-      baseUrl = 'http://localhost:8080/api'; // iOS simulator
+      baseUrl = '$backendUrl/api'; // Using backend URL for iOS
     } else {
-      baseUrl = 'http://localhost:8080/api'; // Default fallback
+      baseUrl = '$backendUrl/api'; // Default using backend URL
     }
     print('Initialized API Service with baseUrl: $baseUrl');
   }

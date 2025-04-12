@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:health_app/models/health_data.dart';
 import 'package:health_app/services/database_service.dart';
+import 'package:health_app/constants/constants.dart';
 
 class HealthDataService {
   static final HealthDataService _instance = HealthDataService._internal();
@@ -19,14 +20,14 @@ class HealthDataService {
   HealthDataService._internal() {
     // Determine the appropriate base URL based on platform
     if (kIsWeb) {
-      // For web, always use the actual localhost without port remapping
-      _baseUrl = 'http://localhost:8080/api'; // Web development
+      // For web, always use the backend URL
+      _baseUrl = '$backendUrl/api'; // Web development
     } else if (Platform.isAndroid) {
-      _baseUrl = 'http://10.0.2.2:8080/api'; // Android emulator needs special IP
+      _baseUrl = '$backendUrl/api'; // Using backend URL for Android
     } else if (Platform.isIOS) {
-      _baseUrl = 'http://localhost:8080/api'; // iOS simulator
+      _baseUrl = '$backendUrl/api'; // Using backend URL for iOS
     } else {
-      _baseUrl = 'http://localhost:8080/api'; // Default fallback
+      _baseUrl = '$backendUrl/api'; // Default using backend URL
     }
     print('Initialized Health Data Service with baseUrl: $_baseUrl');
   }
