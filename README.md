@@ -102,5 +102,16 @@ lib/
 - Offline data access
 - Protected health information
 
+  ##  Images
+  <img width="339" alt="Screenshot 2025-04-16 at 7 36 53 PM" src="https://github.com/user-attachments/assets/b0b2fc19-e49b-47be-8935-31db8ec828b9" />
+<img width="339" alt="Screenshot 2025-04-16 at 7 37 05 PM" src="https://github.com/user-attachments/assets/03532e31-3069-416c-a332-ce6dbb98a5bc" />
+
+  <img width="339" alt="Screenshot 2025-04-16 at 7 37 10 PM" src="https://github.com/user-attachments/assets/db556819-b08c-4ffc-bfa6-b19e22ff112b" />
+<img width="339" alt="Screenshot 2025-04-16 at 7 37 18 PM" src="https://github.com/user-attachments/assets/3cdead6c-82b5-4b8c-854b-a501e3e3b390" />
+
+
+<img width="339" alt="Screenshot 2025-04-16 at 7 37 33 PM" src="https://github.com/user-attachments/assets/640c8567-8664-40bf-903b-b0fef299fe01" />
+<img width="339" alt="Screenshot 2025-04-16 at 7 37 37 PM" src="https://github.com/user-attachments/assets/19c956f3-0e04-414a-ad24-e0fd14d917c2" />
+<img width="339" alt="Screenshot 2025-04-16 at 7 37 42 PM" src="https://github.com/user-attachments/assets/6eee4eaa-3489-424f-ae2c-5cff93d65670" />
 
 
