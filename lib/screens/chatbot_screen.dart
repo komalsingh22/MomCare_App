@@ -215,7 +215,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
           ),
           const SizedBox(height: 24),
           Text(
-            "Hello, I'm your EmpowerHer Assistant",
+            "Hi, I'm your EmpowerHer Assistant",
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.bold,
             ),
