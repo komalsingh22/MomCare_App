@@ -1,49 +1,92 @@
 
 
-# MomCare App
+# 👩‍🍼 MomCare App
 
-A comprehensive mobile healthcare application designed to support mothers throughout their pregnancy journey and beyond. Built with Flutter, this app provides a range of features to help mothers track their health, receive personalized recommendations, and access important healthcare information.
+A comprehensive **mobile healthcare application** designed to support mothers throughout their **pregnancy journey and beyond**.  
+Built with **Flutter (frontend)** and **Go (backend)**, MomCare provides tools for tracking health, receiving AI-powered insights, and managing healthcare data securely.
+
+---
 
 ## 🚀 Features
 
-- **Health Tracking**
-  - Pregnancy progress tracking
-  - Health metrics monitoring
-  - Appointment scheduling
-  - Medication reminders
+### 🩺 **Health Tracking**
+- Track pregnancy progress and milestones
+- Monitor vital signs (weight, blood pressure, temperature)
+- Manage health reports and documents
+- Schedule medical appointments
+- Receive medication and check-up reminders
 
-- **AI-Powered Assistance**
-  - Smart health recommendations using Google Generative AI
-  - Personalized health insights
-  - Interactive health queries
+### 🤖 **AI-Powered Assistance**
+- Smart health recommendations using **Google Generative AI**
+- Personalized insights based on user health data
+- Interactive question–answer support for maternal health queries
 
-- **Data Management**
-  - Secure local storage using SQLite
-  - Encrypted data handling with Flutter Secure Storage
-  - User preferences management
+### 💾 **Data Management**
+- Secure cloud data storage via **Go backend APIs**
+- Local data caching and persistence
+- Encrypted credentials using **Flutter Secure Storage**
+- User preferences stored securely
 
-- **Advanced UI Components**
-  - Interactive health charts and graphs
-  - Custom calendar integration
-  - Dynamic list views with slidable actions
-  - Staggered grid layouts
-  - SVG support for high-quality graphics
-  - Markdown support for rich text content
+### 🎨 **Advanced UI Components**
+- Custom-designed, intuitive UI built with Flutter
+- Interactive charts and progress bars
+- Integrated calendar and reminder views
+- Dynamic list views with slidable actions
+- **SVG** and **Markdown** support for clean visuals and rich content
+- Staggered grids and custom cards for modern layouts
 
-- **Smart Features**
-  - Text recognition for medical documents
-  - Hospital contact information access
+### 💡 **Smart Features**
+- Access to hospital contact directories
+- Real-time health alerts and reminders
 
-## 🛠️ Technical Stack
+---
 
-- **Frontend Framework**: Flutter 3.7+
-- **Programming Language**: Dart
-- **Database**: SQLite (sqflite)
-- **State Management**: Native Flutter State Management
-- **UI Components**: Material Design, Cupertino
-- **APIs & Services**:
-  - Google Generative AI
-  - HTTP for API communications
+## 🛠️ **Technical Stack**
+
+### **Frontend (Flutter)**
+- **Framework:** Flutter 3.7+
+- **Language:** Dart
+- **State Management:** Provider (Native Flutter State Management)
+- **UI Toolkit:** Material Design + Cupertino
+- **HTTP Client:** `http` package
+- **Secure Storage:** `flutter_secure_storage`
+- **Local Database:** `sqflite` (for caching and offline support)
+
+### **Backend (Go)**
+- **Framework:** Go (Golang)
+- **Hosting:** Render Cloud
+- **API Architecture:** RESTful APIs
+- **Database:** PostgreSQL (for centralized health data)
+- **Security:** CORS-enabled, token-based access (JWT-ready)
+- **Integration:** Exposed APIs for Flutter frontend via  
+  `const String backendUrl = 'https://momcare-backend.onrender.com';`
+
+---
+
+## 🧠 **Core Design Principles**
+
+- **Modular Architecture:** Organized by features (health tracking, reports, AI assistant)
+- **Separation of Concerns:** Independent layers for models, services, and views
+- **Reusability:** Shared widgets and components for consistent UI
+- **Scalability:** Backend built to support high concurrency using Go’s goroutines
+- **Future-Ready:** Easy to integrate chat modules, baby growth tracking, and doctor consultations
+
+---
+
+## 🔐 **Security and Privacy**
+- All sensitive data is encrypted locally using **AES encryption**
+- API communication is secured via HTTPS
+- No third-party data sharing — privacy-first design
+
+---
+
+## ⚙️ **Setup & Installation**
+
+### **1️⃣ Clone the Repository**
+```bash
+git clone https://github.com/komalsingh22/MomCare_App.git
+cd MomCare_App
+
 
 ## 📱 Platform Support
 
